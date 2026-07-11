@@ -14,8 +14,6 @@ export interface TileTypeConfig {
   erodible: boolean;
   erosionResistance: number;
   buildable: boolean;
-  foodYield: number;
-  materialYield: number;
 }
 
 export const TILE_CONFIGS: Record<TileType, TileTypeConfig> = {
@@ -25,8 +23,6 @@ export const TILE_CONFIGS: Record<TileType, TileTypeConfig> = {
     erodible: false,
     erosionResistance: Infinity,
     buildable: false,
-    foodYield: 0,
-    materialYield: 0,
   },
   [TileType.SHALLOW_WATER]: {
     name: 'Shallow Water',
@@ -34,8 +30,6 @@ export const TILE_CONFIGS: Record<TileType, TileTypeConfig> = {
     erodible: false,
     erosionResistance: Infinity,
     buildable: false,
-    foodYield: 1,
-    materialYield: 0,
   },
   [TileType.SAND]: {
     name: 'Sand',
@@ -43,8 +37,6 @@ export const TILE_CONFIGS: Record<TileType, TileTypeConfig> = {
     erodible: true,
     erosionResistance: 1,
     buildable: true,
-    foodYield: 0,
-    materialYield: 1,
   },
   [TileType.GRASS]: {
     name: 'Grassland',
@@ -52,8 +44,6 @@ export const TILE_CONFIGS: Record<TileType, TileTypeConfig> = {
     erodible: true,
     erosionResistance: 2,
     buildable: true,
-    foodYield: 1,
-    materialYield: 1,
   },
   [TileType.FOREST]: {
     name: 'Forest',
@@ -61,8 +51,6 @@ export const TILE_CONFIGS: Record<TileType, TileTypeConfig> = {
     erodible: true,
     erosionResistance: 4,
     buildable: true,
-    foodYield: 0,
-    materialYield: 3,
   },
   [TileType.ROCK]: {
     name: 'Rocky',
@@ -70,8 +58,6 @@ export const TILE_CONFIGS: Record<TileType, TileTypeConfig> = {
     erodible: true,
     erosionResistance: 8,
     buildable: true,
-    foodYield: 0,
-    materialYield: 2,
   },
   [TileType.RUBBLE]: {
     name: 'Rubble',
@@ -79,8 +65,6 @@ export const TILE_CONFIGS: Record<TileType, TileTypeConfig> = {
     erodible: true,
     erosionResistance: 2,
     buildable: true,
-    foodYield: 0,
-    materialYield: 2,
   },
 };
 

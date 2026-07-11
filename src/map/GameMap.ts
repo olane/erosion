@@ -1,7 +1,7 @@
 import Phaser from 'phaser';
 import { hexKey, getNeighbors } from './HexUtils.ts';
 import { TileType, TILE_CONFIGS } from '../data/tiles.ts';
-import { BuildingType, BUILDING_CONFIGS } from '../data/buildings.ts';
+import { BuildingType, BUILDING_CONFIGS, getBuildingYields } from '../data/buildings.ts';
 import { MAP_RADIUS, HEX_SIZE } from '../constants.ts';
 import { MapRenderer } from './MapRenderer.ts';
 import { MapGenerator } from './MapGenerator.ts';
@@ -170,12 +170,20 @@ export class GameMap {
           ? 'Beach'
           : 'Desert'
         : config.name;
+    let yieldStr = '';
+    if (building) {
+      const y = getBuildingYields(building.buildingType, tile.tileType);
+      const parts: string[] = [];
+      if (y.food) parts.push(`Food +${y.food}`);
+      if (y.materials) parts.push(`Mat +${y.materials}`);
+      if (y.science) parts.push(`Sci +${y.science}`);
+      if (parts.length) yieldStr = ` | ${parts.join(' ')}`;
+    }
     return (
-      `(${q},${r}) ${tileName}${bldgString}  |  ` +
+      `(${q},${r}) ${tileName}${bldgString}${yieldStr}  |  ` +
       `Erosion ${tile.erosionProgress.toFixed(0)}%  |  ` +
       `${coastal ? 'Coastal' : 'Inland'}  |  ` +
-      `Rate ${tile.erosionRate.toFixed(2)}x  |  ` +
-      `Food ${config.foodYield}  Mat ${config.materialYield}`
+      `Rate ${tile.erosionRate.toFixed(2)}x`
     );
   }
 
