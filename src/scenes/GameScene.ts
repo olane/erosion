@@ -40,6 +40,10 @@ export class GameScene extends Phaser.Scene {
       this.map.exitBuildMode();
     };
 
+    this.map.onBuildPlaced = () => {
+      this.ui.cancelBuild();
+    };
+
     this.camera = new CameraController(this);
 
     this.input.keyboard!.on('keydown-ESC', () => {
@@ -47,6 +51,10 @@ export class GameScene extends Phaser.Scene {
         this.map.exitBuildMode();
         this.ui.cancelBuild();
       }
+    });
+
+    this.input.keyboard!.on('keydown-B', () => {
+      this.ui.toggleBuild();
     });
   }
 

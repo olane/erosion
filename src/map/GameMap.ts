@@ -15,6 +15,7 @@ export class GameMap {
   renderer: MapRenderer;
   buildingManager: BuildingManager;
   onTileSelect: ((info: string | null) => void) | null = null;
+  onBuildPlaced: (() => void) | null = null;
 
   buildMode: boolean = false;
   selectedBuildingType: BuildingType | null = null;
@@ -26,6 +27,7 @@ export class GameMap {
       scene,
       () => this.tiles,
       (tile) => this.buildingManager.getBuildingAt(tile.q, tile.r),
+      (q, r) => this.canBuildAt(q, r),
     );
     this.renderer.onTileClick = (q, r) => this.handleTileClick(q, r);
 
@@ -89,6 +91,8 @@ export class GameMap {
     const result = this.buildingManager.placeBuilding(this.selectedBuildingType, tile);
     if (result !== null) {
       this.refreshTile(q, r);
+      this.exitBuildMode();
+      if (this.onBuildPlaced) this.onBuildPlaced();
     }
   }
 
@@ -111,6 +115,15 @@ export class GameMap {
       if (neighbor && neighbor.buildingId !== null) return true;
     }
     return false;
+  }
+
+  canBuildAt(q: number, r: number): boolean | null {
+    if (!this.buildMode || this.selectedBuildingType === null) return null;
+    const tile = this.tiles.get(hexKey(q, r));
+    if (!tile) return false;
+    if (!this.buildingManager.canPlace(this.selectedBuildingType, tile)) return false;
+    if (!this.hasAdjacentBuilding(q, r)) return false;
+    return true;
   }
 
   // Pick a random inland tile that neighbors a coastal tile (one tile back from the sea).

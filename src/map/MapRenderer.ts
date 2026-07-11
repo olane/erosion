@@ -13,19 +13,25 @@ export class MapRenderer {
   private scene: Phaser.Scene;
   private getTiles: () => Map<string, TileData>;
   private getBuildingAtTile: ((tile: TileData) => BuildingInstance | null) | null = null;
+  private canBuildAt: ((q: number, r: number) => boolean | null) | null = null;
   private selectedQ: number | null = null;
   private selectedR: number | null = null;
   private highlightGfx: Phaser.GameObjects.Graphics | null = null;
+  private hoverHighlight: Phaser.GameObjects.Graphics | null = null;
 
   constructor(
     scene: Phaser.Scene,
     getTiles: () => Map<string, TileData>,
     getBuildingAtTile?: (tile: TileData) => BuildingInstance | null,
+    canBuildAt?: (q: number, r: number) => boolean | null,
   ) {
     this.scene = scene;
     this.getTiles = getTiles;
     this.getBuildingAtTile = getBuildingAtTile ?? null;
+    this.canBuildAt = canBuildAt ?? null;
     this.container = scene.add.container(0, 0);
+    this.hoverHighlight = scene.add.graphics();
+    this.container.add(this.hoverHighlight);
   }
 
   axialToWorld(q: number, r: number): { x: number; y: number } {
@@ -46,8 +52,20 @@ export class MapRenderer {
         ),
         Phaser.Geom.Polygon.Contains,
       );
-      gfx.on('pointerover', () => gfx.setAlpha(0.8));
-      gfx.on('pointerout', () => gfx.setAlpha(1));
+      gfx.on('pointerover', () => {
+        if (this.canBuildAt) {
+          const valid = this.canBuildAt(tile.q, tile.r);
+          if (valid !== null) {
+            this.drawHoverHighlight(tile.q, tile.r, valid);
+            return;
+          }
+        }
+        gfx.setAlpha(0.8);
+      });
+      gfx.on('pointerout', () => {
+        this.hoverHighlight!.clear();
+        gfx.setAlpha(1);
+      });
       gfx.on('pointerdown', () => {
         if (this.onTileClick) {
           this.onTileClick(tile.q, tile.r);
@@ -216,6 +234,23 @@ export class MapRenderer {
     }
     this.selectedQ = null;
     this.selectedR = null;
+  }
+
+  private drawHoverHighlight(q: number, r: number, valid: boolean): void {
+    const { x, y } = this.axialToWorld(q, r);
+    const vertices = getHexVertices(x, y, HEX_SIZE - 1);
+    const color = valid ? 0x44cc44 : 0xcc4444;
+
+    this.container.bringToTop(this.hoverHighlight!);
+    this.hoverHighlight!.clear();
+    this.hoverHighlight!.fillStyle(color, 0.25);
+    this.hoverHighlight!.lineStyle(2, color, 0.6);
+    this.hoverHighlight!.beginPath();
+    this.hoverHighlight!.moveTo(vertices[0].x, vertices[0].y);
+    for (let i = 1; i < 6; i++) this.hoverHighlight!.lineTo(vertices[i].x, vertices[i].y);
+    this.hoverHighlight!.closePath();
+    this.hoverHighlight!.fillPath();
+    this.hoverHighlight!.strokePath();
   }
 
   isSelected(q: number, r: number): boolean {
