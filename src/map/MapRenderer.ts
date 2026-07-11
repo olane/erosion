@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { getHexVertices } from './HexUtils.ts';
+import { hexKey, getHexVertices } from './HexUtils.ts';
 import { TileType, TILE_CONFIGS, EROSION_TRANSITION } from '../data/tiles.ts';
 import { BUILDING_CONFIGS } from '../data/buildings.ts';
 import type { BuildingInstance } from '../data/buildings.ts';
@@ -19,6 +19,7 @@ export class MapRenderer {
   private selectedR: number | null = null;
   private highlightGfx: Phaser.GameObjects.Graphics | null = null;
   private hoverHighlight: Phaser.GameObjects.Graphics | null = null;
+  private tileGraphics: Map<string, Phaser.GameObjects.Graphics> = new Map();
 
   constructor(
     scene: Phaser.Scene,
@@ -71,7 +72,7 @@ export class MapRenderer {
           this.onTileClick(tile.q, tile.r);
         }
       });
-      tile.graphics = gfx;
+      this.tileGraphics.set(hexKey(tile.q, tile.r), gfx);
       this.container.add(gfx);
     }
   }
@@ -110,11 +111,14 @@ export class MapRenderer {
   }
 
   refreshTile(tile: TileData): void {
+    const gfx = this.tileGraphics.get(hexKey(tile.q, tile.r));
+    if (!gfx) return;
+
     const hexBorder = tile.seaWalled ? 0x4488cc : tile.erosionProgress > 0 ? 0xff4444 : 0x333333;
     const hexBorderAlpha = tile.seaWalled ? 0.9 : tile.erosionProgress > 0 ? 0.8 : 0.4;
     const hexBorderWidth = tile.seaWalled ? 3 : 1;
     this.drawHex(
-      tile.graphics,
+      gfx,
       tile.q,
       tile.r,
       tile.tileType,
@@ -125,17 +129,17 @@ export class MapRenderer {
 
     if (tile.erosionProgress > 0) {
       const pct = tile.erosionProgress / 100;
-      tile.graphics.fillStyle(0xff0000, pct * 0.3);
+      gfx.fillStyle(0xff0000, pct * 0.3);
       const { x, y } = this.axialToWorld(tile.q, tile.r);
       const vertices = getHexVertices(x, y, HEX_SIZE);
-      tile.graphics.beginPath();
-      tile.graphics.moveTo(vertices[0].x, vertices[0].y);
-      for (let i = 1; i < 6; i++) tile.graphics.lineTo(vertices[i].x, vertices[i].y);
-      tile.graphics.closePath();
-      tile.graphics.fillPath();
+      gfx.beginPath();
+      gfx.moveTo(vertices[0].x, vertices[0].y);
+      for (let i = 1; i < 6; i++) gfx.lineTo(vertices[i].x, vertices[i].y);
+      gfx.closePath();
+      gfx.fillPath();
     }
 
-    this.drawBuildingIcon(tile.graphics, tile);
+    this.drawBuildingIcon(gfx, tile);
   }
 
   private drawBuildingIcon(gfx: Phaser.GameObjects.Graphics, tile: TileData): void {

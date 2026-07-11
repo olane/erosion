@@ -1,4 +1,3 @@
-import type Phaser from 'phaser';
 import type { TileType } from '../data/tiles.ts';
 
 export interface TileData {
@@ -10,5 +9,4 @@ export interface TileData {
   erosionRate: number;
   buildingId: string | null;
   seaWalled: boolean;
-  graphics: Phaser.GameObjects.Graphics;
 }

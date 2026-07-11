@@ -1,4 +1,3 @@
-import Phaser from 'phaser';
 import { hexKey, getNeighbors } from './HexUtils.ts';
 import { TileType } from '../data/tiles.ts';
 import { MAP_RADIUS } from '../constants.ts';
@@ -45,7 +44,6 @@ export class MapGenerator {
           erosionRate,
           buildingId: null,
           seaWalled: false,
-          graphics: null as unknown as Phaser.GameObjects.Graphics,
         });
 
         if (isLand) {
