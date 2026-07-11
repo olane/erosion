@@ -8,6 +8,6 @@ export const EROSION_BASE_PROGRESS = 10;
 
 export const EROSION_ADJACENCY_BONUS = 10;
 
-export const SPEED_OPTIONS = [0, 1, 2, 4] as const;
+export const SPEED_OPTIONS = [0, 1, 2, 4, 10] as const;
 
 export type GameSpeed = (typeof SPEED_OPTIONS)[number];
