@@ -44,6 +44,7 @@ export class MapGenerator {
           erosionProgress: 0,
           erosionRate,
           buildingId: null,
+          seaWalled: false,
           graphics: null as unknown as Phaser.GameObjects.Graphics,
         });
 

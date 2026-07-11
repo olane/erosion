@@ -13,8 +13,8 @@ export class BuildingManager {
   }
 
   canPlace(type: BuildingType, tile: TileData): boolean {
-    if (tile.buildingId !== null) return false;
     if (!TILE_CONFIGS[tile.tileType].buildable) return false;
+    if (!BUILDING_CONFIGS[type].isWall && tile.buildingId !== null) return false;
     return BuildingManager.isTileAllowed(type, tile.tileType);
   }
 

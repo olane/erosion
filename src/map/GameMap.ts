@@ -116,6 +116,10 @@ export class GameMap {
     if (blockReason) {
       return `Cannot place ${config.name}: ${blockReason}`;
     }
+    if (config.isWall) {
+      const costStr = config.cost > 0 ? `Cost: ${config.cost} mat` : '';
+      return `${config.name} — reduces erosion${costStr ? ` | ${costStr}` : ''}`;
+    }
     const yields = getBuildingYields(this.selectedBuildingType, tile.tileType);
     const parts: string[] = [];
     if (yields.food) parts.push(`Food +${yields.food}`);
@@ -136,7 +140,8 @@ export class GameMap {
     if (!BUILDING_CONFIGS[this.selectedBuildingType].allowedTiles.includes(tile.tileType)) {
       return `requires ${config.allowedTiles.map((t) => TILE_CONFIGS[t].name).join(' or ')}`;
     }
-    if (tile.buildingId !== null) return 'already occupied';
+    if (!config.isWall && tile.buildingId !== null) return 'already occupied';
+    if (config.isWall && tile.seaWalled) return 'already sea-walled';
     if (!this.hasAdjacentBuilding(q, r)) return 'no adjacent building';
     if (config.requiresCoastal && !this.isCoastal(q, r)) return 'must be coastal';
     if (config.cost > 0 && this.canAfford && !this.canAfford(config.cost)) {
@@ -161,6 +166,14 @@ export class GameMap {
         return;
       }
       if (this.spendMaterials) this.spendMaterials(config.cost);
+    }
+
+    if (config.isWall) {
+      tile.seaWalled = true;
+      this.refreshTile(q, r);
+      this.exitBuildMode();
+      if (this.onBuildPlaced) this.onBuildPlaced();
+      return;
     }
 
     const result = this.buildingManager.placeBuilding(this.selectedBuildingType, tile);
@@ -199,6 +212,7 @@ export class GameMap {
     if (!this.buildingManager.canPlace(this.selectedBuildingType, tile)) return false;
     if (!this.hasAdjacentBuilding(q, r)) return false;
     const buildingConfig = BUILDING_CONFIGS[this.selectedBuildingType];
+    if (buildingConfig.isWall && tile.seaWalled) return false;
     if (buildingConfig.requiresCoastal && !this.isCoastal(q, r)) return false;
     return true;
   }
@@ -263,8 +277,9 @@ export class GameMap {
       if (y.science) parts.push(`Sci +${y.science}`);
       if (parts.length) yieldStr = ` | ${parts.join(' ')}`;
     }
+    const wallStr = tile.seaWalled ? ' | Sea Walled' : '';
     return (
-      `(${q},${r}) ${tileName}${bldgString}${yieldStr}  |  ` +
+      `(${q},${r}) ${tileName}${bldgString}${wallStr}${yieldStr}  |  ` +
       `Erosion ${tile.erosionProgress.toFixed(0)}%  |  ` +
       `${coastal ? 'Coastal' : 'Inland'}  |  ` +
       `Rate ${tile.erosionRate.toFixed(2)}x`

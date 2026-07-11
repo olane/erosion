@@ -9,7 +9,7 @@ import {
   EROSION_BASE_PROGRESS,
   EROSION_ADJACENCY_BONUS,
 } from '../constants.ts';
-import { hexDistance, getNeighbors } from '../map/HexUtils.ts';
+import { hexDistance, hexKey, getNeighbors } from '../map/HexUtils.ts';
 import type { TileData } from '../map/types.ts';
 import type { IClock } from './TimeSystem.ts';
 
@@ -47,6 +47,9 @@ export class ErosionSystem {
   private time: IClock;
   private config: ErosionConfig;
   private lastCheck: number = 0;
+
+  seaWallSelfMult: number = 0.2;
+  seaWallAdjMult: number = 0.8;
 
   constructor(map: IErosionTarget, time: IClock, config: ErosionConfig = DEFAULT_CONFIG) {
     this.map = map;
@@ -101,12 +104,13 @@ export class ErosionSystem {
   }
 
   private getProtectionMultiplier(tile: TileData): number {
-    const hasSeaWall =
-      this.map.getBuildingTypeAt?.(tile.q, tile.r) === BuildingType.SEA_WALL ||
-      getNeighbors(tile.q, tile.r).some(
-        (n) => this.map.getBuildingTypeAt?.(n.q, n.r) === BuildingType.SEA_WALL,
-      );
-    if (hasSeaWall) return 0.3;
+    if (tile.seaWalled) return this.seaWallSelfMult;
+
+    const neighborWalled = getNeighbors(tile.q, tile.r).some((n) => {
+      const nt = this.map.tiles.get(hexKey(n.q, n.r));
+      return nt?.seaWalled ?? false;
+    });
+    if (neighborWalled) return this.seaWallAdjMult;
 
     if (this.map.getBuildingTypeAt) {
       for (const [, other] of this.map.tiles) {
@@ -129,6 +133,7 @@ export class ErosionSystem {
 
       tile.tileType = newType;
       tile.erosionProgress = 0;
+      tile.seaWalled = false;
 
       if (tile.buildingId !== null) {
         const compatible =

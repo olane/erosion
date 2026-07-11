@@ -5,6 +5,7 @@ import { ErosionSystem } from '../systems/ErosionSystem.ts';
 import { ResourceManager } from '../systems/ResourceManager.ts';
 import { ProductionSystem } from '../systems/ProductionSystem.ts';
 import { TechManager } from '../systems/TechManager.ts';
+import { TechNode } from '../data/tech.ts';
 import { GameUI } from '../ui/GameUI.ts';
 import { CameraController } from '../systems/CameraController.ts';
 
@@ -85,7 +86,12 @@ export class GameScene extends Phaser.Scene {
     this.input.keyboard!.on('keydown-T', () => {
       const available = this.tech.getAvailableNodes();
       if (available.length > 0) {
-        this.tech.tryResearch(available[0]);
+        const researched = available[0];
+        this.tech.tryResearch(researched);
+        if (researched === TechNode.COASTAL_ENGINEERING) {
+          this.erosion.seaWallSelfMult = 0.1;
+          this.erosion.seaWallAdjMult = 0.6;
+        }
       }
     });
   }

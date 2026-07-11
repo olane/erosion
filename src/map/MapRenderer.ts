@@ -85,6 +85,7 @@ export class MapRenderer {
     tileType: TileType,
     borderColor: number = 0x333333,
     borderAlpha: number = 0.4,
+    borderWidth: number = 1,
   ): void {
     const config = TILE_CONFIGS[tileType];
     const { x, y } = this.axialToWorld(q, r);
@@ -100,7 +101,7 @@ export class MapRenderer {
     gfx.closePath();
     gfx.fillPath();
 
-    gfx.lineStyle(1, borderColor, borderAlpha);
+    gfx.lineStyle(borderWidth, borderColor, borderAlpha);
     gfx.beginPath();
     gfx.moveTo(vertices[0].x, vertices[0].y);
     for (let i = 1; i < 6; i++) {
@@ -111,9 +112,18 @@ export class MapRenderer {
   }
 
   refreshTile(tile: TileData): void {
-    const hexBorder = tile.erosionProgress > 0 ? 0xff4444 : 0x333333;
-    const hexBorderAlpha = tile.erosionProgress > 0 ? 0.8 : 0.4;
-    this.drawHex(tile.graphics, tile.q, tile.r, tile.tileType, hexBorder, hexBorderAlpha);
+    const hexBorder = tile.seaWalled
+      ? 0x4488cc
+      : tile.erosionProgress > 0
+        ? 0xff4444
+        : 0x333333;
+    const hexBorderAlpha = tile.seaWalled
+      ? 0.9
+      : tile.erosionProgress > 0
+        ? 0.8
+        : 0.4;
+    const hexBorderWidth = tile.seaWalled ? 2 : 1;
+    this.drawHex(tile.graphics, tile.q, tile.r, tile.tileType, hexBorder, hexBorderAlpha, hexBorderWidth);
 
     if (tile.erosionProgress > 0) {
       const pct = tile.erosionProgress / 100;

@@ -9,5 +9,6 @@ export interface TileData {
   erosionProgress: number;
   erosionRate: number;
   buildingId: string | null;
+  seaWalled: boolean;
   graphics: Phaser.GameObjects.Graphics;
 }

@@ -21,7 +21,7 @@ export const TECH_CONFIGS: Record<TechNode, TechNodeConfig> = {
     name: 'Coastal Engineering',
     cost: 15,
     tier: 1,
-    unlocks: [BuildingType.SEA_WALL],
+    unlocks: [], // upgrades sea wall effectiveness
   },
   [TechNode.CRAFTSMANSHIP]: {
     name: 'Craftsmanship',

@@ -37,6 +37,7 @@ export interface BuildingTypeConfig {
     perTile?: Partial<Record<TileType, Partial<BuildingYields>>>;
   };
   requiresCoastal?: boolean;
+  isWall?: boolean;
   tier: number;
 }
 
@@ -149,7 +150,8 @@ export const BUILDING_CONFIGS: Record<BuildingType, BuildingTypeConfig> = {
     popCap: 0,
     yields: { default: {} },
     requiresCoastal: true,
-    tier: 1,
+    isWall: true,
+    tier: 0,
   },
   [BuildingType.WORKSHOP]: {
     name: 'Workshop',
