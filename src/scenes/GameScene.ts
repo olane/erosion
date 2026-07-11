@@ -32,7 +32,21 @@ export class GameScene extends Phaser.Scene {
       this.ui.showTileInfo(info);
     };
 
+    this.ui.onBuildSelect = (type) => {
+      this.map.enterBuildMode(type);
+    };
+    this.ui.onCancelBuild = () => {
+      this.map.exitBuildMode();
+    };
+
     this.camera = new CameraController(this);
+
+    this.input.keyboard!.on('keydown-ESC', () => {
+      if (this.map.buildMode) {
+        this.map.exitBuildMode();
+        this.ui.cancelBuild();
+      }
+    });
   }
 
   update(_time: number, delta: number): void {

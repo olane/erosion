@@ -1,9 +1,11 @@
 import Phaser from 'phaser';
 import { hexKey, getNeighbors } from './HexUtils.ts';
 import { TileType, TILE_CONFIGS } from '../data/tiles.ts';
+import { BuildingType, BUILDING_CONFIGS } from '../data/buildings.ts';
 import { MAP_RADIUS, HEX_SIZE } from '../constants.ts';
 import { MapRenderer } from './MapRenderer.ts';
 import { MapGenerator } from './MapGenerator.ts';
+import { BuildingManager } from '../systems/BuildingManager.ts';
 import type { TileData } from './types.ts';
 
 export type { TileData } from './types.ts';
@@ -11,10 +13,20 @@ export type { TileData } from './types.ts';
 export class GameMap {
   tiles: Map<string, TileData> = new Map();
   renderer: MapRenderer;
+  buildingManager: BuildingManager;
   onTileSelect: ((info: string | null) => void) | null = null;
 
+  buildMode: boolean = false;
+  selectedBuildingType: BuildingType | null = null;
+
   constructor(scene: Phaser.Scene) {
-    this.renderer = new MapRenderer(scene, () => this.tiles);
+    this.buildingManager = new BuildingManager();
+
+    this.renderer = new MapRenderer(
+      scene,
+      () => this.tiles,
+      (tile) => this.buildingManager.getBuildingAt(tile.q, tile.r),
+    );
     this.renderer.onTileClick = (q, r) => this.handleTileClick(q, r);
 
     this.tiles = new MapGenerator().generate();
@@ -52,6 +64,11 @@ export class GameMap {
   }
 
   private handleTileClick(q: number, r: number): void {
+    if (this.buildMode && this.selectedBuildingType !== null) {
+      this.tryPlaceBuilding(q, r);
+      return;
+    }
+
     if (this.renderer.isSelected(q, r)) {
       this.renderer.deselectTile();
       if (this.onTileSelect) this.onTileSelect(null);
@@ -60,9 +77,38 @@ export class GameMap {
 
     this.renderer.selectTile(q, r);
     const info = this.buildTileInfo(q, r);
-    // eslint-disable-next-line no-console
-    console.log(info);
     if (this.onTileSelect) this.onTileSelect(info);
+  }
+
+  private tryPlaceBuilding(q: number, r: number): void {
+    const tile = this.tiles.get(hexKey(q, r));
+    if (!tile || this.selectedBuildingType === null) return;
+
+    const result = this.buildingManager.placeBuilding(this.selectedBuildingType, tile);
+    if (result !== null) {
+      this.refreshTile(q, r);
+    }
+  }
+
+  enterBuildMode(type: BuildingType): void {
+    this.renderer.deselectTile();
+    this.buildMode = true;
+    this.selectedBuildingType = type;
+    if (this.onTileSelect) this.onTileSelect(null);
+  }
+
+  exitBuildMode(): void {
+    this.buildMode = false;
+    this.selectedBuildingType = null;
+  }
+
+  onBuildingLost(q: number, r: number): void {
+    this.buildingManager.removeBuildingAt(q, r);
+    this.refreshTile(q, r);
+  }
+
+  isBuildingCompatibleWithTile(q: number, r: number, newTileType: TileType): boolean {
+    return this.buildingManager.isCompatibleWithTile(q, r, newTileType);
   }
 
   private buildTileInfo(q: number, r: number): string {
@@ -70,8 +116,12 @@ export class GameMap {
     if (!tile) return '';
     const config = TILE_CONFIGS[tile.tileType];
     const coastal = this.isCoastal(q, r);
+    const building = this.buildingManager.getBuildingAt(q, r);
+    const bldgString = building
+      ? `  |  ${BUILDING_CONFIGS[building.buildingType].name}`
+      : '';
     return (
-      `(${q},${r}) ${config.name}  |  ` +
+      `(${q},${r}) ${config.name}${bldgString}  |  ` +
       `Erosion ${tile.erosionProgress.toFixed(0)}%  |  ` +
       `${coastal ? 'Coastal' : 'Inland'}  |  ` +
       `Rate ${tile.erosionRate.toFixed(2)}x  |  ` +

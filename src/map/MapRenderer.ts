@@ -1,6 +1,8 @@
 import Phaser from 'phaser';
 import { getHexVertices } from './HexUtils.ts';
-import { TileType, TILE_CONFIGS } from '../data/tiles.ts';
+import { TileType, TILE_CONFIGS, EROSION_TRANSITION } from '../data/tiles.ts';
+import { BUILDING_CONFIGS } from '../data/buildings.ts';
+import type { BuildingInstance } from '../data/buildings.ts';
 import { HEX_SIZE } from '../constants.ts';
 import type { TileData } from './types.ts';
 
@@ -10,13 +12,19 @@ export class MapRenderer {
 
   private scene: Phaser.Scene;
   private getTiles: () => Map<string, TileData>;
+  private getBuildingAtTile: ((tile: TileData) => BuildingInstance | null) | null = null;
   private selectedQ: number | null = null;
   private selectedR: number | null = null;
   private highlightGfx: Phaser.GameObjects.Graphics | null = null;
 
-  constructor(scene: Phaser.Scene, getTiles: () => Map<string, TileData>) {
+  constructor(
+    scene: Phaser.Scene,
+    getTiles: () => Map<string, TileData>,
+    getBuildingAtTile?: (tile: TileData) => BuildingInstance | null,
+  ) {
     this.scene = scene;
     this.getTiles = getTiles;
+    this.getBuildingAtTile = getBuildingAtTile ?? null;
     this.container = scene.add.container(0, 0);
   }
 
@@ -30,6 +38,7 @@ export class MapRenderer {
     for (const [, tile] of this.getTiles()) {
       const gfx = this.scene.add.graphics();
       this.drawHex(gfx, tile.q, tile.r, tile.tileType);
+      this.drawBuildingIcon(gfx, tile);
       const { x, y } = this.axialToWorld(tile.q, tile.r);
       gfx.setInteractive(
         new Phaser.Geom.Polygon(
@@ -97,6 +106,72 @@ export class MapRenderer {
       tile.graphics.closePath();
       tile.graphics.fillPath();
     }
+
+    this.drawBuildingIcon(tile.graphics, tile);
+  }
+
+  private drawBuildingIcon(
+    gfx: Phaser.GameObjects.Graphics,
+    tile: TileData,
+  ): void {
+    if (!this.getBuildingAtTile) return;
+    const building = this.getBuildingAtTile(tile);
+    if (!building) return;
+
+    const config = BUILDING_CONFIGS[building.buildingType];
+    const { x, y } = this.axialToWorld(tile.q, tile.r);
+    const iconSize = HEX_SIZE * 0.35;
+    const danger =
+      tile.erosionProgress >= 70 &&
+      this.isBuildingDanger(building, tile.tileType);
+
+    const fillColor = danger ? 0xff2222 : config.iconColor;
+    const fillAlpha = danger ? 0.85 : 0.9;
+    const borderColor = danger ? 0xffcc00 : 0x000000;
+    const borderAlpha = danger ? 0.9 : 0.3;
+    const borderWidth = danger ? 1.5 : 1;
+
+    gfx.fillStyle(fillColor, fillAlpha);
+    gfx.lineStyle(borderWidth, borderColor, borderAlpha);
+
+    if (config.iconShape === 'circle') {
+      gfx.beginPath();
+      gfx.arc(x, y, iconSize, 0, Math.PI * 2);
+      gfx.closePath();
+      gfx.fillPath();
+      gfx.strokePath();
+    } else if (config.iconShape === 'triangle') {
+      const h = iconSize * 1.5;
+      const w = iconSize * 1.3;
+      gfx.beginPath();
+      gfx.moveTo(x, y - h * 0.6);
+      gfx.lineTo(x + w, y + h * 0.4);
+      gfx.lineTo(x - w, y + h * 0.4);
+      gfx.closePath();
+      gfx.fillPath();
+      gfx.strokePath();
+    }
+
+    if (danger) {
+      const warnY = y - iconSize - 2;
+      gfx.fillStyle(0xffcc00, 1);
+      gfx.beginPath();
+      gfx.moveTo(x, warnY - 4);
+      gfx.lineTo(x + 3, warnY + 2);
+      gfx.lineTo(x - 3, warnY + 2);
+      gfx.closePath();
+      gfx.fillPath();
+
+      gfx.fillStyle(0x000000, 1);
+      gfx.fillRect(x - 0.5, warnY, 1, 2);
+      gfx.fillRect(x - 0.5, warnY + 4, 1, 1);
+    }
+  }
+
+  private isBuildingDanger(building: BuildingInstance, currentTileType: TileType): boolean {
+    const nextType = EROSION_TRANSITION[currentTileType];
+    if (nextType === null) return false;
+    return !BUILDING_CONFIGS[building.buildingType].allowedTiles.includes(nextType);
   }
 
   getSelectedCoords(): { q: number; r: number } | null {

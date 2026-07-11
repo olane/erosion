@@ -1,4 +1,5 @@
 import type { TimeSystem } from '../systems/TimeSystem.ts';
+import { BuildingType, BUILDING_CONFIGS } from '../data/buildings.ts';
 
 export class GameUI {
   private time: TimeSystem;
@@ -8,6 +9,14 @@ export class GameUI {
   private pauseEl: HTMLSpanElement;
   private infoEl: HTMLSpanElement;
   private tileInfoEl: HTMLSpanElement;
+  private buildBtnEl: HTMLSpanElement;
+  private buildStatusEl: HTMLSpanElement;
+
+  onBuildSelect: ((type: BuildingType) => void) | null = null;
+  onCancelBuild: (() => void) | null = null;
+
+  private buildMode: boolean = false;
+  private activeBuildingType: BuildingType | null = null;
 
   constructor(time: TimeSystem) {
     this.time = time;
@@ -20,6 +29,8 @@ export class GameUI {
     this.pauseEl = this.el('pause');
     this.infoEl = this.el('info');
     this.tileInfoEl = this.el('tile-info');
+    this.buildBtnEl = this.el('build-btn');
+    this.buildStatusEl = this.el('build-status');
 
     this.bindEvents();
     this.updateDisplay();
@@ -50,6 +61,8 @@ export class GameUI {
       wrap(span('time')),
       wrap(span('speed', 'clickable')),
       wrap(span('pause', 'clickable')),
+      wrap(span('build-btn', 'clickable')),
+      wrap(span('build-status')),
     ]));
     root.appendChild(div('hud-right', [
       wrap(span('info')),
@@ -71,6 +84,31 @@ export class GameUI {
       this.time.togglePause();
       this.updateDisplay();
     });
+    this.buildBtnEl.addEventListener('click', () => this.toggleBuild());
+  }
+
+  private toggleBuild(): void {
+    if (this.buildMode && this.activeBuildingType !== null) {
+      const types = Object.values(BuildingType).filter(
+        (v): v is BuildingType => typeof v === 'number',
+      );
+      const currentIdx = types.indexOf(this.activeBuildingType);
+      const nextType = types[(currentIdx + 1) % types.length];
+      this.activeBuildingType = nextType;
+      if (this.onBuildSelect) this.onBuildSelect(nextType);
+    } else {
+      this.buildMode = true;
+      this.activeBuildingType = BuildingType.FARM;
+      if (this.onBuildSelect) this.onBuildSelect(BuildingType.FARM);
+    }
+    this.updateDisplay();
+  }
+
+  cancelBuild(): void {
+    this.buildMode = false;
+    this.activeBuildingType = null;
+    if (this.onCancelBuild) this.onCancelBuild();
+    this.updateDisplay();
   }
 
   showTileInfo(text: string | null): void {
@@ -90,5 +128,14 @@ export class GameUI {
 
     this.pauseEl.textContent = this.time.isPaused ? '▶ Resume' : '⏸ Pause';
     this.infoEl.textContent = 'WASD/arrows to pan  |  Scroll to zoom  |  Middle-drag to pan';
+
+    if (this.buildMode && this.activeBuildingType !== null) {
+      const config = BUILDING_CONFIGS[this.activeBuildingType];
+      this.buildBtnEl.textContent = `Bldg: [${config.name}] (click to switch)`;
+      this.buildStatusEl.textContent = 'Click tile to place  |  Esc to cancel';
+    } else {
+      this.buildBtnEl.textContent = 'Build: [Click to start]';
+      this.buildStatusEl.textContent = '';
+    }
   }
 }
