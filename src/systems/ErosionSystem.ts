@@ -12,10 +12,9 @@ import type { IClock } from './TimeSystem.ts';
 export interface IErosionTarget {
   tiles: Map<string, TileData>;
   getWaterNeighbors(q: number, r: number): TileData[];
-  refreshTile(q: number, r: number): void;
-  onBuildingLost?: (q: number, r: number) => void;
-  isBuildingCompatibleWithTile?: (q: number, r: number, newTileType: TileType) => boolean;
-  getBuildingTypeAt?: (q: number, r: number) => BuildingType | null;
+  applyErosion(tile: TileData, progress: number): void;
+  transitionTile(q: number, r: number, newType: TileType): void;
+  getBuildingTypeAt?(q: number, r: number): BuildingType | null;
 }
 
 export interface ErosionConfig {
@@ -84,8 +83,8 @@ export class ErosionSystem {
         tile.erosionRate *
         jitter;
 
-      tile.erosionProgress += progress * this.getProtectionMultiplier(tile);
-      this.map.refreshTile(tile.q, tile.r);
+      const applied = progress * this.getProtectionMultiplier(tile);
+      this.map.applyErosion(tile, applied);
 
       if (tile.erosionProgress >= 100) {
         const next = EROSION_TRANSITION[tile.tileType];
@@ -96,7 +95,7 @@ export class ErosionSystem {
     }
 
     for (const { q, r, tileType } of erodingNow) {
-      this.changeTile(q, r, tileType);
+      this.map.transitionTile(q, r, tileType);
     }
   }
 
@@ -120,29 +119,5 @@ export class ErosionSystem {
     }
 
     return 1;
-  }
-
-  private changeTile(q: number, r: number, newType: TileType): void {
-    const tile = this.map.tiles.get(`${q},${r}`);
-    if (!tile) return;
-
-    tile.tileType = newType;
-    tile.erosionProgress = 0;
-    tile.seaWalled = false;
-
-    if (tile.buildingId !== null) {
-      const compatible =
-        this.map.isBuildingCompatibleWithTile &&
-        this.map.isBuildingCompatibleWithTile(q, r, newType);
-
-      if (!compatible) {
-        tile.buildingId = null;
-        if (this.map.onBuildingLost) {
-          this.map.onBuildingLost(q, r);
-        }
-      }
-    }
-
-    this.map.refreshTile(q, r);
   }
 }

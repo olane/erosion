@@ -61,6 +61,29 @@ export class GameMap {
     this.renderer.refreshTile(tile);
   }
 
+  applyErosion(tile: TileData, progress: number): void {
+    tile.erosionProgress += progress;
+    this.refreshTile(tile.q, tile.r);
+  }
+
+  transitionTile(q: number, r: number, newType: TileType): void {
+    const tile = this.tiles.get(`${q},${r}`);
+    if (!tile) return;
+
+    tile.tileType = newType;
+    tile.erosionProgress = 0;
+    tile.seaWalled = false;
+
+    if (tile.buildingId !== null) {
+      if (!this.buildingManager.isCompatibleWithTile(q, r, newType)) {
+        tile.buildingId = null;
+        this.onBuildingLost(q, r);
+      }
+    }
+
+    this.refreshTile(q, r);
+  }
+
   getWaterNeighbors(q: number, r: number): TileData[] {
     const neighbors = getNeighbors(q, r);
     const result: TileData[] = [];
