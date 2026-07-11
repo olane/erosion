@@ -45,16 +45,19 @@ export class CameraController {
       this.dragStartY = pointer.y;
     });
 
-    scene.input.on('wheel', (_pointer: Phaser.Input.Pointer, _gameObjects: unknown[], _dx: number, dy: number) => {
-      const oldZoom = this.cam.zoom;
-      const newZoom = Phaser.Math.Clamp(oldZoom - dy * ZOOM_SENSITIVITY, MIN_ZOOM, MAX_ZOOM);
-      const pointer = scene.input.activePointer;
-      const worldPoint = this.cam.getWorldPoint(pointer.x, pointer.y);
-      this.cam.setZoom(newZoom);
-      const newWorldPoint = this.cam.getWorldPoint(pointer.x, pointer.y);
-      this.cam.scrollX += worldPoint.x - newWorldPoint.x;
-      this.cam.scrollY += worldPoint.y - newWorldPoint.y;
-    });
+    scene.input.on(
+      'wheel',
+      (_pointer: Phaser.Input.Pointer, _gameObjects: unknown[], _dx: number, dy: number) => {
+        const oldZoom = this.cam.zoom;
+        const newZoom = Phaser.Math.Clamp(oldZoom - dy * ZOOM_SENSITIVITY, MIN_ZOOM, MAX_ZOOM);
+        const pointer = scene.input.activePointer;
+        const worldPoint = this.cam.getWorldPoint(pointer.x, pointer.y);
+        this.cam.setZoom(newZoom);
+        const newWorldPoint = this.cam.getWorldPoint(pointer.x, pointer.y);
+        this.cam.scrollX += worldPoint.x - newWorldPoint.x;
+        this.cam.scrollY += worldPoint.y - newWorldPoint.y;
+      },
+    );
 
     this.cursors = scene.input.keyboard!.createCursorKeys();
     this.wasd = {

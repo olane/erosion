@@ -18,11 +18,7 @@ export function axialToPixel(q: number, r: number, size: number): { x: number; y
   return { x, y };
 }
 
-export function pixelToAxial(
-  px: number,
-  py: number,
-  size: number,
-): AxialCoords {
+export function pixelToAxial(px: number, py: number, size: number): AxialCoords {
   const q = ((Math.sqrt(3) / 3) * px - (1 / 3) * py) / size;
   const r = ((2 / 3) * py) / size;
   return axialRound(q, r);
@@ -61,11 +57,7 @@ export function getNeighbors(q: number, r: number): AxialCoords[] {
   return AXIAL_DIRECTIONS.map((d) => ({ q: q + d.q, r: r + d.r }));
 }
 
-export function getHexVertices(
-  cx: number,
-  cy: number,
-  size: number,
-): { x: number; y: number }[] {
+export function getHexVertices(cx: number, cy: number, size: number): { x: number; y: number }[] {
   const vertices: { x: number; y: number }[] = [];
   for (let i = 0; i < 6; i++) {
     const angle = (Math.PI / 180) * (60 * i - 30);

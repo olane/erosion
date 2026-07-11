@@ -8,9 +8,9 @@ import type { TileData } from './types.ts';
 const NOISE_SCALE = 0.07;
 const NOISE_OCTAVES = 4;
 const STRETCH_R = 1.6;
-const ROCK_PCT = 0.10;
-const FOREST_PCT = 0.30;
-const INLAND_SAND_PCT = 0.20;
+const ROCK_PCT = 0.1;
+const FOREST_PCT = 0.3;
+const INLAND_SAND_PCT = 0.2;
 
 export class MapGenerator {
   generate(): Map<string, TileData> {
@@ -86,8 +86,7 @@ export class MapGenerator {
         const neighbor = tiles.get(hexKey(n.q, n.r));
         if (
           neighbor &&
-          (neighbor.tileType === TileType.WATER ||
-            neighbor.tileType === TileType.SHALLOW_WATER)
+          (neighbor.tileType === TileType.WATER || neighbor.tileType === TileType.SHALLOW_WATER)
         ) {
           result.push(neighbor);
         }

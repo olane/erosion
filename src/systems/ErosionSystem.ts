@@ -1,8 +1,4 @@
-import {
-  TileType,
-  TILE_CONFIGS,
-  EROSION_TRANSITION,
-} from '../data/tiles.ts';
+import { TileType, TILE_CONFIGS, EROSION_TRANSITION } from '../data/tiles.ts';
 import { BuildingType } from '../data/buildings.ts';
 import {
   EROSION_CHECK_INTERVAL,
@@ -81,7 +77,8 @@ export class ErosionSystem {
         this.config.adjacencyMultiplier *
         this.config.adjacencyBonus *
         (1 - Math.pow(this.config.adjacencyDecayBase, waterAdjacentCount));
-      const jitter = this.config.jitterMin + Math.random() * (this.config.jitterMax - this.config.jitterMin);
+      const jitter =
+        this.config.jitterMin + Math.random() * (this.config.jitterMax - this.config.jitterMin);
       const progress =
         (this.config.baseProgress / config.erosionResistance + adjacencyBonus) *
         tile.erosionRate *

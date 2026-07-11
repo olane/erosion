@@ -30,7 +30,12 @@ export class GameUI {
   private buildMode: boolean = false;
   private activeBuildingType: BuildingType | null = null;
 
-  constructor(time: TimeSystem, resources?: ResourceManager, tech?: TechManager, production?: ProductionSystem) {
+  constructor(
+    time: TimeSystem,
+    resources?: ResourceManager,
+    tech?: TechManager,
+    production?: ProductionSystem,
+  ) {
     this.time = time;
     this.resources = resources ?? null;
     this.tech = tech ?? null;
@@ -66,35 +71,34 @@ export class GameUI {
     const div = (id: string, children: HTMLElement[]) => {
       const el = document.createElement('div');
       el.id = id;
-      children.forEach(c => el.appendChild(c));
+      children.forEach((c) => el.appendChild(c));
       return el;
     };
     const wrap = (...children: HTMLElement[]) => {
       const el = document.createElement('div');
-      children.forEach(c => el.appendChild(c));
+      children.forEach((c) => el.appendChild(c));
       return el;
     };
 
     const root = document.createElement('div');
     root.id = 'hud';
-    root.appendChild(div('hud-left', [
-      wrap(span('time')),
-      wrap(span('speed', 'clickable')),
-      wrap(span('pause', 'clickable')),
-      document.createElement('hr'),
-      wrap(span('food')),
-      wrap(span('mat')),
-      wrap(span('science')),
-      wrap(span('pop')),
-      document.createElement('hr'),
-      wrap(span('build-btn', 'clickable')),
-      wrap(span('build-status')),
-      wrap(span('tech')),
-    ]));
-    root.appendChild(div('hud-right', [
-      wrap(span('info')),
-      wrap(span('tile-info')),
-    ]));
+    root.appendChild(
+      div('hud-left', [
+        wrap(span('time')),
+        wrap(span('speed', 'clickable')),
+        wrap(span('pause', 'clickable')),
+        document.createElement('hr'),
+        wrap(span('food')),
+        wrap(span('mat')),
+        wrap(span('science')),
+        wrap(span('pop')),
+        document.createElement('hr'),
+        wrap(span('build-btn', 'clickable')),
+        wrap(span('build-status')),
+        wrap(span('tech')),
+      ]),
+    );
+    root.appendChild(div('hud-right', [wrap(span('info')), wrap(span('tile-info'))]));
     return root;
   }
 
@@ -167,8 +171,8 @@ export class GameUI {
       const r = this.resources;
       const p = this.production;
 
-      const sign = (v: number) => v > 0 ? `+${v}` : `${v}`;
-      const rate = (v: number) => v !== 0 ? ` (${sign(v)})` : '';
+      const sign = (v: number) => (v > 0 ? `+${v}` : `${v}`);
+      const rate = (v: number) => (v !== 0 ? ` (${sign(v)})` : '');
       const pen = p?.workforceShortfall;
 
       this.foodEl.textContent = `Food: ${Math.floor(r.food)}/${r.foodCap}${rate(p?.foodRate ?? 0)}`;

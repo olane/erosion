@@ -48,9 +48,7 @@ export class MapRenderer {
       this.drawBuildingIcon(gfx, tile);
       const { x, y } = this.axialToWorld(tile.q, tile.r);
       gfx.setInteractive(
-        new Phaser.Geom.Polygon(
-          getHexVertices(x, y, HEX_SIZE - 1).flatMap((v) => [v.x, v.y]),
-        ),
+        new Phaser.Geom.Polygon(getHexVertices(x, y, HEX_SIZE - 1).flatMap((v) => [v.x, v.y])),
         Phaser.Geom.Polygon.Contains,
       );
       gfx.on('pointerover', () => {
@@ -112,18 +110,18 @@ export class MapRenderer {
   }
 
   refreshTile(tile: TileData): void {
-    const hexBorder = tile.seaWalled
-      ? 0x4488cc
-      : tile.erosionProgress > 0
-        ? 0xff4444
-        : 0x333333;
-    const hexBorderAlpha = tile.seaWalled
-      ? 0.9
-      : tile.erosionProgress > 0
-        ? 0.8
-        : 0.4;
+    const hexBorder = tile.seaWalled ? 0x4488cc : tile.erosionProgress > 0 ? 0xff4444 : 0x333333;
+    const hexBorderAlpha = tile.seaWalled ? 0.9 : tile.erosionProgress > 0 ? 0.8 : 0.4;
     const hexBorderWidth = tile.seaWalled ? 3 : 1;
-    this.drawHex(tile.graphics, tile.q, tile.r, tile.tileType, hexBorder, hexBorderAlpha, hexBorderWidth);
+    this.drawHex(
+      tile.graphics,
+      tile.q,
+      tile.r,
+      tile.tileType,
+      hexBorder,
+      hexBorderAlpha,
+      hexBorderWidth,
+    );
 
     if (tile.erosionProgress > 0) {
       const pct = tile.erosionProgress / 100;
@@ -140,10 +138,7 @@ export class MapRenderer {
     this.drawBuildingIcon(tile.graphics, tile);
   }
 
-  private drawBuildingIcon(
-    gfx: Phaser.GameObjects.Graphics,
-    tile: TileData,
-  ): void {
+  private drawBuildingIcon(gfx: Phaser.GameObjects.Graphics, tile: TileData): void {
     if (!this.getBuildingAtTile) return;
     const building = this.getBuildingAtTile(tile);
     if (!building) return;
@@ -151,9 +146,7 @@ export class MapRenderer {
     const config = BUILDING_CONFIGS[building.buildingType];
     const { x, y } = this.axialToWorld(tile.q, tile.r);
     const iconSize = HEX_SIZE * 0.35;
-    const danger =
-      tile.erosionProgress >= 70 &&
-      this.isBuildingDanger(building, tile.tileType);
+    const danger = tile.erosionProgress >= 70 && this.isBuildingDanger(building, tile.tileType);
 
     const fillColor = danger ? 0xff2222 : config.iconColor;
     const fillAlpha = danger ? 0.85 : 0.9;

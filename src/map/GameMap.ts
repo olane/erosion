@@ -69,11 +69,7 @@ export class GameMap {
     const result: TileData[] = [];
     for (const n of neighbors) {
       const tile = this.tiles.get(hexKey(n.q, n.r));
-      if (
-        tile &&
-        (tile.tileType === TileType.WATER ||
-          tile.tileType === TileType.SHALLOW_WATER)
-      ) {
+      if (tile && (tile.tileType === TileType.WATER || tile.tileType === TileType.SHALLOW_WATER)) {
         result.push(tile);
       }
     }
@@ -259,15 +255,8 @@ export class GameMap {
     const config = TILE_CONFIGS[tile.tileType];
     const coastal = this.isCoastal(q, r);
     const building = this.buildingManager.getBuildingAt(q, r);
-    const bldgString = building
-      ? `  |  ${BUILDING_CONFIGS[building.buildingType].name}`
-      : '';
-    const tileName =
-      tile.tileType === TileType.SAND
-        ? coastal
-          ? 'Beach'
-          : 'Desert'
-        : config.name;
+    const bldgString = building ? `  |  ${BUILDING_CONFIGS[building.buildingType].name}` : '';
+    const tileName = tile.tileType === TileType.SAND ? (coastal ? 'Beach' : 'Desert') : config.name;
     let yieldStr = '';
     if (building) {
       const y = getBuildingYields(building.buildingType, tile.tileType);

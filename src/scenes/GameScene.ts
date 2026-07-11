@@ -63,12 +63,9 @@ export class GameScene extends Phaser.Scene {
       this.production.recalculateCaps();
     };
 
-    this.map.canAfford = (materials: number) =>
-      this.resources.materials >= materials;
-    this.map.spendMaterials = (amount: number) =>
-      this.resources.spendMaterials(amount);
-    this.map.getAvailablePop = () =>
-      this.resources.population - this.production.totalPopReq;
+    this.map.canAfford = (materials: number) => this.resources.materials >= materials;
+    this.map.spendMaterials = (amount: number) => this.resources.spendMaterials(amount);
+    this.map.getAvailablePop = () => this.resources.population - this.production.totalPopReq;
 
     this.camera = new CameraController(this);
 

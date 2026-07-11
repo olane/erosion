@@ -88,7 +88,10 @@ export class ProductionSystem {
     this.scienceRate = yields.science;
   }
 
-  private computeYields(matMult: number, sciMult: number): { food: number; materials: number; science: number } {
+  private computeYields(
+    matMult: number,
+    sciMult: number,
+  ): { food: number; materials: number; science: number } {
     let food = 0;
     let materials = 0;
     let science = 0;
@@ -101,6 +104,10 @@ export class ProductionSystem {
       materials += y.materials;
       science += y.science;
     }
-    return { food, materials: Math.floor(materials * matMult), science: Math.floor(science * sciMult) };
+    return {
+      food,
+      materials: Math.floor(materials * matMult),
+      science: Math.floor(science * sciMult),
+    };
   }
 }

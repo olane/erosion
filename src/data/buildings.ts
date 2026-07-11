@@ -53,7 +53,7 @@ export const BUILDING_CONFIGS: Record<BuildingType, BuildingTypeConfig> = {
     popCap: 5,
     storageFood: 100,
     storageMat: 100,
-      yields: { default: { materials: 1, science: 1 } },
+    yields: { default: { materials: 1, science: 1 } },
     tier: 0,
   },
   [BuildingType.FARM]: {

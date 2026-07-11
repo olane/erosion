@@ -8,7 +8,6 @@ const urlSeed = params.get('seed');
 if (urlSeed) {
   setNoiseSeed(parseInt(urlSeed, 10));
 }
-// eslint-disable-next-line no-console
 console.log(`Map seed: ${getNoiseSeed()}`);
 
 const config: Phaser.Types.Core.GameConfig = {
