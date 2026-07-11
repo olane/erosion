@@ -172,16 +172,13 @@ export class GameUI {
 
       const sign = (v: number) => v > 0 ? `+${v}` : `${v}`;
       const rateStr = (v: number) => v !== 0 ? ` (${sign(v)})` : '';
+      const pen = p?.workforceShortfall;
 
       this.foodEl.textContent = `Food: ${Math.floor(r.food)}/${r.foodCap}${rateStr(foodNet)}`;
-      this.matEl.textContent = `Mat:  ${Math.floor(r.materials)}/${r.matCap}${rateStr(matNet)}`;
-      this.scienceEl.textContent = `Sci:  ${Math.floor(r.science)}${rateStr(sciNet)}`;
-      const shortfall = p?.workforceShortfall ? ' (!)' : '';
+      this.matEl.textContent = `Mat:  ${Math.floor(r.materials)}/${r.matCap}${rateStr(matNet)}${pen ? ' (½)' : ''}`;
+      this.scienceEl.textContent = `Sci:  ${Math.floor(r.science)}${rateStr(sciNet)}${pen ? ' (✕)' : ''}`;
       const jobs = p ? ` | work ${p.totalPopReq}` : '';
-      const growth = p && r.popProgress !== 0
-        ? r.popProgress > 0 ? ` +${Math.round(r.popProgress * 100)}%` : ` ${Math.round(r.popProgress * 100)}%`
-        : '';
-      this.popEl.textContent = `Pop:  ${r.population}/${r.popCap}${jobs}${growth}${shortfall}`;
+      this.popEl.textContent = `Pop:  ${r.population}/${r.popCap}${jobs}`;
     }
 
     if (this.buildMode && this.activeBuildingType !== null) {
