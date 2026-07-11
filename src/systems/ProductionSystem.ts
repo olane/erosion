@@ -10,16 +10,19 @@ export class ProductionSystem {
   private resources: ResourceManager;
   private buildings: BuildingManager;
   private getTiles: () => Map<string, TileData>;
+  private refreshTile: (q: number, r: number) => void;
   private lastDay: number = -1;
 
   constructor(
     resources: ResourceManager,
     buildings: BuildingManager,
     getTiles: () => Map<string, TileData>,
+    refreshTile: (q: number, r: number) => void,
   ) {
     this.resources = resources;
     this.buildings = buildings;
     this.getTiles = getTiles;
+    this.refreshTile = refreshTile;
   }
 
   update(elapsed: number): void {
@@ -55,26 +58,19 @@ export class ProductionSystem {
 
   private tickDay(): void {
     this.recalculateCaps();
-
-    const popBefore = this.resources.population;
     this.resources.eat();
-
-    if (this.resources.population !== popBefore) {
-      this.resolveWorkforce();
-    }
-
     this.resolveWorkforce();
     this.produce();
   }
 
   private resolveWorkforce(): void {
     const tiles = this.getTiles();
-    const buildingList: Array<{ id: string; type: BuildingType; disabled: boolean }> = [];
+    const buildingList: Array<{ id: string; type: BuildingType; disabled: boolean; q: number; r: number }> = [];
 
     for (const b of this.buildings.buildings.values()) {
       const tile = tiles.get(hexKey(b.q, b.r));
       if (!tile || tile.buildingId !== b.id) continue;
-      buildingList.push({ id: b.id, type: b.buildingType, disabled: b.disabled });
+      buildingList.push({ id: b.id, type: b.buildingType, disabled: b.disabled, q: b.q, r: b.r });
     }
 
     let totalReq = 0;
@@ -91,7 +87,10 @@ export class ProductionSystem {
         if (b.type === BuildingType.TOWN_HALL) continue;
         if (b.disabled) continue;
         const inst = this.buildings.buildings.get(b.id);
-        if (inst) inst.disabled = true;
+        if (inst) {
+          inst.disabled = true;
+          this.refreshTile(b.q, b.r);
+        }
         totalReq -= BUILDING_CONFIGS[b.type].popReq;
         if (this.resources.population >= totalReq) break;
       }
@@ -104,7 +103,10 @@ export class ProductionSystem {
         if (totalReq + req <= this.resources.population) {
           totalReq += req;
           const inst = this.buildings.buildings.get(b.id);
-          if (inst) inst.disabled = false;
+          if (inst) {
+            inst.disabled = false;
+            this.refreshTile(b.q, b.r);
+          }
         }
       }
     }

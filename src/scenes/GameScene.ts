@@ -33,12 +33,15 @@ export class GameScene extends Phaser.Scene {
 
     this.gameTime = new TimeSystem();
     this.resources = new ResourceManager();
+    this.resources.food = 20;
+    this.resources.materials = 25;
     this.tech = new TechManager(this.resources);
     this.erosion = new ErosionSystem(this.map, this.gameTime);
     this.production = new ProductionSystem(
       this.resources,
       this.map.buildingManager,
       () => this.map.tiles,
+      (q, r) => this.map.refreshTile(q, r),
     );
     this.ui = new GameUI(this.gameTime, this.resources, this.tech);
 
@@ -53,6 +56,9 @@ export class GameScene extends Phaser.Scene {
       this.map.exitBuildMode();
     };
 
+    this.map.onBuildingRemoved = () => {
+      this.production.recalculateCaps();
+    };
     this.map.onBuildPlaced = () => {
       this.ui.cancelBuild();
       this.production.recalculateCaps();

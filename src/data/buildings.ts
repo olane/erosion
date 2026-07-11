@@ -121,7 +121,7 @@ export const BUILDING_CONFIGS: Record<BuildingType, BuildingTypeConfig> = {
     popCap: 0,
     yields: {
       default: {},
-      perTile: { [TileType.SAND]: { food: 3 } },
+      perTile: { [TileType.SAND]: { food: 4 } },
     },
     requiresCoastal: true,
     tier: 0,

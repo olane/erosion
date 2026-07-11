@@ -143,10 +143,10 @@ export class MapRenderer {
       tile.erosionProgress >= 70 &&
       this.isBuildingDanger(building, tile.tileType);
 
-    const fillColor = danger ? 0xff2222 : config.iconColor;
-    const fillAlpha = danger ? 0.85 : 0.9;
-    const borderColor = danger ? 0xffcc00 : 0x000000;
-    const borderAlpha = danger ? 0.9 : 0.3;
+    const fillColor = danger ? 0xff2222 : building.disabled ? 0x666666 : config.iconColor;
+    const fillAlpha = danger ? 0.85 : building.disabled ? 0.4 : 0.9;
+    const borderColor = danger ? 0xffcc00 : building.disabled ? 0x444444 : 0x000000;
+    const borderAlpha = danger ? 0.9 : building.disabled ? 0.2 : 0.3;
     const borderWidth = danger ? 1.5 : 1;
 
     gfx.fillStyle(fillColor, fillAlpha);

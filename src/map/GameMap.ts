@@ -16,6 +16,7 @@ export class GameMap {
   buildingManager: BuildingManager;
   onTileSelect: ((info: string | null) => void) | null = null;
   onBuildPlaced: (() => void) | null = null;
+  onBuildingRemoved: (() => void) | null = null;
   onCannotAfford: ((cost: number) => void) | null = null;
   canAfford: ((materials: number) => boolean) | null = null;
   spendMaterials: ((amount: number) => boolean) | null = null;
@@ -163,6 +164,7 @@ export class GameMap {
   onBuildingLost(q: number, r: number): void {
     this.buildingManager.removeBuildingAt(q, r);
     this.refreshTile(q, r);
+    if (this.onBuildingRemoved) this.onBuildingRemoved();
   }
 
   isBuildingCompatibleWithTile(q: number, r: number, newTileType: TileType): boolean {
