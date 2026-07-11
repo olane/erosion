@@ -1,5 +1,6 @@
 import type { TimeSystem } from '../systems/TimeSystem.ts';
 import { BuildingType, BUILDING_CONFIGS } from '../data/buildings.ts';
+import type { TechManager } from '../systems/TechManager.ts';
 
 export class GameUI {
   private time: TimeSystem;
@@ -14,12 +15,15 @@ export class GameUI {
 
   onBuildSelect: ((type: BuildingType) => void) | null = null;
   onCancelBuild: (() => void) | null = null;
+  onTechResearch: ((techIndex: number) => void) | null = null;
 
+  private tech: TechManager | null = null;
   private buildMode: boolean = false;
   private activeBuildingType: BuildingType | null = null;
 
-  constructor(time: TimeSystem) {
+  constructor(time: TimeSystem, tech?: TechManager) {
     this.time = time;
+    this.tech = tech ?? null;
 
     this.container = this.buildDOM();
     document.getElementById('game-container')!.appendChild(this.container);
@@ -88,23 +92,28 @@ export class GameUI {
   }
 
   toggleBuild(): void {
+    const availableTypes = this.getAvailableTypes();
+    if (availableTypes.length === 0) return;
+
     if (this.buildMode && this.activeBuildingType !== null) {
-      const types = Object.values(BuildingType).filter(
-        (v): v is BuildingType => typeof v === 'number' && v !== BuildingType.TOWN_HALL,
-      );
-      const currentIdx = types.indexOf(this.activeBuildingType);
-      const nextType = types[(currentIdx + 1) % types.length];
+      const currentIdx = availableTypes.indexOf(this.activeBuildingType);
+      const nextType = availableTypes[(currentIdx + 1) % availableTypes.length];
       this.activeBuildingType = nextType;
       if (this.onBuildSelect) this.onBuildSelect(nextType);
     } else {
-      const types = Object.values(BuildingType).filter(
-        (v): v is BuildingType => typeof v === 'number' && v !== BuildingType.TOWN_HALL,
-      );
       this.buildMode = true;
-      this.activeBuildingType = types[0];
-      if (this.onBuildSelect) this.onBuildSelect(types[0]);
+      this.activeBuildingType = availableTypes[0];
+      if (this.onBuildSelect) this.onBuildSelect(availableTypes[0]);
     }
     this.updateDisplay();
+  }
+
+  private getAvailableTypes(): BuildingType[] {
+    const all = Object.values(BuildingType).filter(
+      (v): v is BuildingType => typeof v === 'number' && v !== BuildingType.TOWN_HALL,
+    );
+    if (!this.tech) return all;
+    return all.filter((t) => this.tech!.isBuildingAvailable(t));
   }
 
   cancelBuild(): void {

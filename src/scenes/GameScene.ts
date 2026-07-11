@@ -4,6 +4,7 @@ import { TimeSystem } from '../systems/TimeSystem.ts';
 import { ErosionSystem } from '../systems/ErosionSystem.ts';
 import { ResourceManager } from '../systems/ResourceManager.ts';
 import { ProductionSystem } from '../systems/ProductionSystem.ts';
+import { TechManager } from '../systems/TechManager.ts';
 import { GameUI } from '../ui/GameUI.ts';
 import { CameraController } from '../systems/CameraController.ts';
 
@@ -13,6 +14,7 @@ export class GameScene extends Phaser.Scene {
   erosion!: ErosionSystem;
   resources!: ResourceManager;
   production!: ProductionSystem;
+  tech!: TechManager;
   ui!: GameUI;
 
   private camera!: CameraController;
@@ -31,13 +33,14 @@ export class GameScene extends Phaser.Scene {
 
     this.gameTime = new TimeSystem();
     this.resources = new ResourceManager();
+    this.tech = new TechManager(this.resources);
     this.erosion = new ErosionSystem(this.map, this.gameTime);
     this.production = new ProductionSystem(
       this.resources,
       this.map.buildingManager,
       () => this.map.tiles,
     );
-    this.ui = new GameUI(this.gameTime);
+    this.ui = new GameUI(this.gameTime, this.tech);
 
     this.map.onTileSelect = (info: string | null) => {
       this.ui.showTileInfo(info);
@@ -71,6 +74,13 @@ export class GameScene extends Phaser.Scene {
 
     this.input.keyboard!.on('keydown-B', () => {
       this.ui.toggleBuild();
+    });
+
+    this.input.keyboard!.on('keydown-T', () => {
+      const available = this.tech.getAvailableNodes();
+      if (available.length > 0) {
+        this.tech.tryResearch(available[0]);
+      }
     });
   }
 
