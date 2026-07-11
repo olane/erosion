@@ -122,7 +122,7 @@ export class MapRenderer {
       : tile.erosionProgress > 0
         ? 0.8
         : 0.4;
-    const hexBorderWidth = tile.seaWalled ? 2 : 1;
+    const hexBorderWidth = tile.seaWalled ? 3 : 1;
     this.drawHex(tile.graphics, tile.q, tile.r, tile.tileType, hexBorder, hexBorderAlpha, hexBorderWidth);
 
     if (tile.erosionProgress > 0) {
