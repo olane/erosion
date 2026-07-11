@@ -166,17 +166,24 @@ export class GameUI {
     if (this.resources) {
       const r = this.resources;
       const p = this.production;
-      const foodNet = p ? p.foodRate : 0;
-      const matNet = p ? p.matRate : 0;
-      const sciNet = p ? p.scienceRate : 0;
 
       const sign = (v: number) => v > 0 ? `+${v}` : `${v}`;
-      const rateStr = (v: number) => v !== 0 ? ` (${sign(v)})` : '';
+      const rateStr = (v: number) => `${sign(v)}`;
       const pen = p?.workforceShortfall;
 
-      this.foodEl.textContent = `Food: ${Math.floor(r.food)}/${r.foodCap}${rateStr(foodNet)}`;
-      this.matEl.textContent = `Mat:  ${Math.floor(r.materials)}/${r.matCap}${rateStr(matNet)}${pen ? ' (½)' : ''}`;
-      this.scienceEl.textContent = `Sci:  ${Math.floor(r.science)}${rateStr(sciNet)}${pen ? ' (✕)' : ''}`;
+      const matRateStr = p && p.matRate !== 0
+        ? ` (${rateStr(p.matRate)}${pen ? ', -50%' : ''})`
+        : '';
+      const sciRateStr = p && p.scienceRate !== 0
+        ? ` (${rateStr(p.scienceRate)}${pen ? ', -100%' : ''})`
+        : '';
+      const foodRateStr = p && p.foodRate !== 0
+        ? ` (${rateStr(p.foodRate)})`
+        : '';
+
+      this.foodEl.textContent = `Food: ${Math.floor(r.food)}/${r.foodCap}${foodRateStr}`;
+      this.matEl.textContent = `Mat:  ${Math.floor(r.materials)}/${r.matCap}${matRateStr}`;
+      this.scienceEl.textContent = `Sci:  ${Math.floor(r.science)}${sciRateStr}`;
       const jobs = p ? ` | work ${p.totalPopReq}` : '';
       this.popEl.textContent = `Pop:  ${r.population}/${r.popCap}${jobs}`;
     }
