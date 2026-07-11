@@ -59,4 +59,9 @@ export class BuildingManager {
     }
     return null;
   }
+
+  getBuildingTypeAt(q: number, r: number): BuildingType | null {
+    const building = this.getBuildingAt(q, r);
+    return building ? building.buildingType : null;
+  }
 }

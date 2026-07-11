@@ -3,11 +3,13 @@ import {
   TILE_CONFIGS,
   EROSION_TRANSITION,
 } from '../data/tiles.ts';
+import { BuildingType } from '../data/buildings.ts';
 import {
   EROSION_CHECK_INTERVAL,
   EROSION_BASE_PROGRESS,
   EROSION_ADJACENCY_BONUS,
 } from '../constants.ts';
+import { hexDistance, getNeighbors } from '../map/HexUtils.ts';
 import type { TileData } from '../map/types.ts';
 import type { IClock } from './TimeSystem.ts';
 
@@ -17,6 +19,7 @@ export interface IErosionTarget {
   refreshTile(q: number, r: number): void;
   onBuildingLost?: (q: number, r: number) => void;
   isBuildingCompatibleWithTile?: (q: number, r: number, newTileType: TileType) => boolean;
+  getBuildingTypeAt?: (q: number, r: number) => BuildingType | null;
 }
 
 export interface ErosionConfig {
@@ -81,7 +84,7 @@ export class ErosionSystem {
         tile.erosionRate *
         jitter;
 
-      tile.erosionProgress += progress;
+      tile.erosionProgress += progress * this.getProtectionMultiplier(tile);
       this.map.refreshTile(tile.q, tile.r);
 
       if (tile.erosionProgress >= 100) {
@@ -95,6 +98,27 @@ export class ErosionSystem {
     for (const { q, r, tileType } of erodingNow) {
       this.changeTile(q, r, tileType);
     }
+  }
+
+  private getProtectionMultiplier(tile: TileData): number {
+    const hasSeaWall =
+      this.map.getBuildingTypeAt?.(tile.q, tile.r) === BuildingType.SEA_WALL ||
+      getNeighbors(tile.q, tile.r).some(
+        (n) => this.map.getBuildingTypeAt?.(n.q, n.r) === BuildingType.SEA_WALL,
+      );
+    if (hasSeaWall) return 0.3;
+
+    if (this.map.getBuildingTypeAt) {
+      for (const [, other] of this.map.tiles) {
+        if (this.map.getBuildingTypeAt(other.q, other.r) === BuildingType.LIGHTHOUSE) {
+          if (hexDistance(tile, other) <= 3) {
+            return 0.5;
+          }
+        }
+      }
+    }
+
+    return 1;
   }
 
   private changeTile(q: number, r: number, newType: TileType): void {

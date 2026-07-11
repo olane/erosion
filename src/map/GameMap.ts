@@ -169,6 +169,10 @@ export class GameMap {
     return this.buildingManager.isCompatibleWithTile(q, r, newTileType);
   }
 
+  getBuildingTypeAt(q: number, r: number): BuildingType | null {
+    return this.buildingManager.getBuildingTypeAt(q, r);
+  }
+
   private buildTileInfo(q: number, r: number): string {
     const tile = this.tiles.get(hexKey(q, r));
     if (!tile) return '';
