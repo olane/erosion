@@ -43,9 +43,11 @@ export class ErosionSystem {
       const waterAdjacentCount = waterNeighbors.length;
       const adjacencyBonus =
         2 * EROSION_ADJACENCY_BONUS * (1 - Math.pow(0.5, waterAdjacentCount));
+      const jitter = 0.8 + Math.random() * 0.4; // ±20%
       const progress =
         (EROSION_BASE_PROGRESS / config.erosionResistance + adjacencyBonus) *
-        tile.erosionRate;
+        tile.erosionRate *
+        jitter;
 
       tile.erosionProgress += progress;
 
