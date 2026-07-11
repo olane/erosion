@@ -123,29 +123,26 @@ export class ErosionSystem {
   }
 
   private changeTile(q: number, r: number, newType: TileType): void {
-    const keys = [`${q},${r}`];
-    for (const key of keys) {
-      const tile = this.map.tiles.get(key);
-      if (!tile) continue;
+    const tile = this.map.tiles.get(`${q},${r}`);
+    if (!tile) return;
 
-      tile.tileType = newType;
-      tile.erosionProgress = 0;
-      tile.seaWalled = false;
+    tile.tileType = newType;
+    tile.erosionProgress = 0;
+    tile.seaWalled = false;
 
-      if (tile.buildingId !== null) {
-        const compatible =
-          this.map.isBuildingCompatibleWithTile &&
-          this.map.isBuildingCompatibleWithTile(q, r, newType);
+    if (tile.buildingId !== null) {
+      const compatible =
+        this.map.isBuildingCompatibleWithTile &&
+        this.map.isBuildingCompatibleWithTile(q, r, newType);
 
-        if (!compatible) {
-          tile.buildingId = null;
-          if (this.map.onBuildingLost) {
-            this.map.onBuildingLost(q, r);
-          }
+      if (!compatible) {
+        tile.buildingId = null;
+        if (this.map.onBuildingLost) {
+          this.map.onBuildingLost(q, r);
         }
       }
-
-      this.map.refreshTile(q, r);
     }
+
+    this.map.refreshTile(q, r);
   }
 }

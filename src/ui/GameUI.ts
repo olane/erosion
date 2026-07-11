@@ -1,6 +1,7 @@
 import type { TimeSystem } from '../systems/TimeSystem.ts';
 import { BuildingType, BUILDING_CONFIGS } from '../data/buildings.ts';
 import { TECH_CONFIGS } from '../data/tech.ts';
+import { SECONDS_PER_DAY } from '../constants.ts';
 import type { TechManager } from '../systems/TechManager.ts';
 import type { ResourceManager } from '../systems/ResourceManager.ts';
 import type { ProductionSystem } from '../systems/ProductionSystem.ts';
@@ -159,7 +160,7 @@ export class GameUI {
   }
 
   private updateDisplay(): void {
-    const days = Math.floor(this.time.elapsed / 3.6);
+    const days = Math.floor(this.time.elapsed / SECONDS_PER_DAY);
     this.timeEl.textContent = `Day ${days + 1}`;
 
     const speedLabel = this.time.speed === 0 ? 'Paused' : `${this.time.speed}x`;

@@ -1,10 +1,9 @@
 import { hexKey } from '../map/HexUtils.ts';
 import { BuildingType, BUILDING_CONFIGS, getBuildingYields } from '../data/buildings.ts';
+import { SECONDS_PER_DAY } from '../constants.ts';
 import type { BuildingManager } from './BuildingManager.ts';
 import type { ResourceManager } from './ResourceManager.ts';
 import type { TileData } from '../map/types.ts';
-
-const SECONDS_PER_DAY = 3.6;
 
 export class ProductionSystem {
   private resources: ResourceManager;
