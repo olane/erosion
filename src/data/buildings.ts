@@ -11,6 +11,7 @@ export interface BuildingTypeConfig {
   iconShape: 'circle' | 'triangle';
   allowedTiles: TileType[];
   iconText: string;
+  tileYieldModifiers?: Partial<Record<TileType, { food?: number; material?: number }>>;
 }
 
 export const BUILDING_CONFIGS: Record<BuildingType, BuildingTypeConfig> = {
@@ -18,8 +19,11 @@ export const BUILDING_CONFIGS: Record<BuildingType, BuildingTypeConfig> = {
     name: 'Farm',
     iconColor: 0x44cc44,
     iconShape: 'circle',
-    allowedTiles: [TileType.GRASS, TileType.FOREST],
+    allowedTiles: [TileType.GRASS, TileType.FOREST, TileType.BEACH],
     iconText: 'F',
+    tileYieldModifiers: {
+      [TileType.BEACH]: { food: -0.5 },
+    },
   },
   [BuildingType.QUARRY]: {
     name: 'Quarry',

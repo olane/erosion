@@ -88,7 +88,7 @@ export const EROSION_TRANSITION: Record<TileType, TileType | null> = {
   [TileType.WATER]: null,
   [TileType.SHALLOW_WATER]: null,
   [TileType.ROCK]: TileType.RUBBLE,
-  [TileType.FOREST]: TileType.GRASS,
+  [TileType.FOREST]: TileType.BEACH,
   [TileType.GRASS]: TileType.BEACH,
   [TileType.BEACH]: TileType.SHALLOW_WATER,
   [TileType.RUBBLE]: TileType.BEACH,
