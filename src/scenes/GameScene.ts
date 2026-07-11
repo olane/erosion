@@ -40,7 +40,6 @@ export class GameScene extends Phaser.Scene {
       this.resources,
       this.map.buildingManager,
       () => this.map.tiles,
-      (q, r) => this.map.refreshTile(q, r),
     );
     this.ui = new GameUI(this.gameTime, this.resources, this.tech, this.production);
 

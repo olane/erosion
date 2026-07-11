@@ -33,7 +33,6 @@ export class BuildingManager {
       buildingType: type,
       q: tile.q,
       r: tile.r,
-      disabled: false,
     };
 
     this.buildings.set(id, instance);

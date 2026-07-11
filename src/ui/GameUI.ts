@@ -176,7 +176,7 @@ export class GameUI {
       this.foodEl.textContent = `Food: ${Math.floor(r.food)}/${r.foodCap}${rateStr(foodNet)}`;
       this.matEl.textContent = `Mat:  ${Math.floor(r.materials)}/${r.matCap}${rateStr(matNet)}`;
       this.scienceEl.textContent = `Sci:  ${Math.floor(r.science)}${rateStr(sciNet)}`;
-      this.popEl.textContent = `Pop:  ${r.population}/${r.popCap}`;
+      this.popEl.textContent = `Pop:  ${r.population}/${r.popCap}${this.production?.workforceShortfall ? ' (!)' : ''}`;
     }
 
     if (this.buildMode && this.activeBuildingType !== null) {

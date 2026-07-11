@@ -10,23 +10,21 @@ export class ProductionSystem {
   private resources: ResourceManager;
   private buildings: BuildingManager;
   private getTiles: () => Map<string, TileData>;
-  private refreshTile: (q: number, r: number) => void;
   private lastDay: number = -1;
 
   foodRate: number = 0;
   matRate: number = 0;
   scienceRate: number = 0;
+  workforceShortfall: boolean = false;
 
   constructor(
     resources: ResourceManager,
     buildings: BuildingManager,
     getTiles: () => Map<string, TileData>,
-    refreshTile: (q: number, r: number) => void,
   ) {
     this.resources = resources;
     this.buildings = buildings;
     this.getTiles = getTiles;
-    this.refreshTile = refreshTile;
   }
 
   update(elapsed: number): void {
@@ -63,9 +61,22 @@ export class ProductionSystem {
   private tickDay(): void {
     this.recalculateCaps();
     this.resources.eat();
-    this.resolveWorkforce();
 
-    const yields = this.computeYields();
+    let totalReq = 0;
+    const tiles = this.getTiles();
+    for (const b of this.buildings.buildings.values()) {
+      if (b.buildingType === BuildingType.TOWN_HALL) continue;
+      const tile = tiles.get(hexKey(b.q, b.r));
+      if (!tile || tile.buildingId !== b.id) continue;
+      totalReq += BUILDING_CONFIGS[b.buildingType].popReq;
+    }
+
+    this.workforceShortfall = this.resources.population < totalReq;
+
+    const matMult = this.workforceShortfall ? 0.5 : 1;
+    const sciMult = this.workforceShortfall ? 0 : 1;
+    const yields = this.computeYields(matMult, sciMult);
+
     this.resources.addFood(yields.food);
     this.resources.addMaterials(yields.materials);
     this.resources.addScience(yields.science);
@@ -75,62 +86,12 @@ export class ProductionSystem {
     this.scienceRate = yields.science;
   }
 
-  private resolveWorkforce(): void {
-    const tiles = this.getTiles();
-    const buildingList: Array<{ id: string; type: BuildingType; disabled: boolean; q: number; r: number }> = [];
-
-    for (const b of this.buildings.buildings.values()) {
-      const tile = tiles.get(hexKey(b.q, b.r));
-      if (!tile || tile.buildingId !== b.id) continue;
-      buildingList.push({ id: b.id, type: b.buildingType, disabled: b.disabled, q: b.q, r: b.r });
-    }
-
-    let totalReq = 0;
-    for (const b of buildingList) {
-      if (b.type === BuildingType.TOWN_HALL) continue;
-      if (!b.disabled) {
-        totalReq += BUILDING_CONFIGS[b.type].popReq;
-      }
-    }
-
-    if (this.resources.population < totalReq) {
-      for (let i = buildingList.length - 1; i >= 0; i--) {
-        const b = buildingList[i];
-        if (b.type === BuildingType.TOWN_HALL) continue;
-        if (b.disabled) continue;
-        const inst = this.buildings.buildings.get(b.id);
-        if (inst) {
-          inst.disabled = true;
-          this.refreshTile(b.q, b.r);
-        }
-        totalReq -= BUILDING_CONFIGS[b.type].popReq;
-        if (this.resources.population >= totalReq) break;
-      }
-    } else {
-      for (let i = buildingList.length - 1; i >= 0; i--) {
-        const b = buildingList[i];
-        if (b.type === BuildingType.TOWN_HALL) continue;
-        if (!b.disabled) continue;
-        const req = BUILDING_CONFIGS[b.type].popReq;
-        if (totalReq + req <= this.resources.population) {
-          totalReq += req;
-          const inst = this.buildings.buildings.get(b.id);
-          if (inst) {
-            inst.disabled = false;
-            this.refreshTile(b.q, b.r);
-          }
-        }
-      }
-    }
-  }
-
-  private computeYields(): { food: number; materials: number; science: number } {
+  private computeYields(matMult: number, sciMult: number): { food: number; materials: number; science: number } {
     let food = 0;
     let materials = 0;
     let science = 0;
     const tiles = this.getTiles();
     for (const b of this.buildings.buildings.values()) {
-      if (b.disabled) continue;
       const tile = tiles.get(hexKey(b.q, b.r));
       if (!tile || tile.buildingId !== b.id) continue;
       const y = getBuildingYields(b.buildingType, tile.tileType);
@@ -138,6 +99,6 @@ export class ProductionSystem {
       materials += y.materials;
       science += y.science;
     }
-    return { food, materials, science };
+    return { food, materials: Math.floor(materials * matMult), science: Math.floor(science * sciMult) };
   }
 }
