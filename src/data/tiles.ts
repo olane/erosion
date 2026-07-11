@@ -50,7 +50,7 @@ export const TILE_CONFIGS: Record<TileType, TileTypeConfig> = {
     name: 'Grassland',
     color: 0x4a8c3f,
     erodible: true,
-    erosionResistance: 3,
+    erosionResistance: 2,
     buildable: true,
     foodYield: 1,
     materialYield: 1,
