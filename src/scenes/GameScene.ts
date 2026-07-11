@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import { GameMap } from '../map/GameMap.ts';
 import { TimeSystem } from '../systems/TimeSystem.ts';
 import { ErosionSystem } from '../systems/ErosionSystem.ts';
+import { ResourceManager } from '../systems/ResourceManager.ts';
 import { GameUI } from '../ui/GameUI.ts';
 import { CameraController } from '../systems/CameraController.ts';
 
@@ -9,6 +10,7 @@ export class GameScene extends Phaser.Scene {
   map!: GameMap;
   gameTime!: TimeSystem;
   erosion!: ErosionSystem;
+  resources!: ResourceManager;
   ui!: GameUI;
 
   private camera!: CameraController;
@@ -26,6 +28,7 @@ export class GameScene extends Phaser.Scene {
     this.cameras.main.centerOn(0, 0);
 
     this.gameTime = new TimeSystem();
+    this.resources = new ResourceManager();
     this.erosion = new ErosionSystem(this.map, this.gameTime);
     this.ui = new GameUI(this.gameTime);
 
