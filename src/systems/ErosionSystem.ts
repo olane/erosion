@@ -8,8 +8,14 @@ import {
   EROSION_BASE_PROGRESS,
   EROSION_ADJACENCY_BONUS,
 } from '../constants.ts';
-import type { GameMap } from '../map/GameMap.ts';
-import type { TimeSystem } from './TimeSystem.ts';
+import type { TileData } from '../map/types.ts';
+import type { IClock } from './TimeSystem.ts';
+
+export interface IErosionTarget {
+  tiles: Map<string, TileData>;
+  getWaterNeighbors(q: number, r: number): TileData[];
+  refreshTile(q: number, r: number): void;
+}
 
 export interface ErosionConfig {
   checkInterval: number;
@@ -32,12 +38,12 @@ const DEFAULT_CONFIG: ErosionConfig = {
 };
 
 export class ErosionSystem {
-  private map: GameMap;
-  private time: TimeSystem;
+  private map: IErosionTarget;
+  private time: IClock;
   private config: ErosionConfig;
   private lastCheck: number = 0;
 
-  constructor(map: GameMap, time: TimeSystem, config?: Partial<ErosionConfig>) {
+  constructor(map: IErosionTarget, time: IClock, config?: Partial<ErosionConfig>) {
     this.map = map;
     this.time = time;
     this.config = { ...DEFAULT_CONFIG, ...config };

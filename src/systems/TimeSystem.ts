@@ -1,6 +1,11 @@
 import { SPEED_OPTIONS, type GameSpeed } from '../constants.ts';
 
-export class TimeSystem {
+export interface IClock {
+  readonly isPaused: boolean;
+  readonly elapsed: number;
+}
+
+export class TimeSystem implements IClock {
   elapsed: number = 0;
   speed: GameSpeed = 1;
   paused: boolean = false;
