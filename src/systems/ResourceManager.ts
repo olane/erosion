@@ -14,7 +14,7 @@ export class ResourceManager implements ResourceState {
   science: number = 0;
   foodCap: number = 100;
   matCap: number = 100;
-  population: number = 5;
+  population: number = 2;
   popCap: number = 5;
 
   onChanged: (() => void) | null = null;
