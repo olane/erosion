@@ -20,6 +20,7 @@ export class GameMap {
   onCannotAfford: ((cost: number) => void) | null = null;
   canAfford: ((materials: number) => boolean) | null = null;
   spendMaterials: ((amount: number) => boolean) | null = null;
+  getAvailablePop: (() => number) | null = null;
 
   buildMode: boolean = false;
   selectedBuildingType: BuildingType | null = null;
@@ -140,6 +141,9 @@ export class GameMap {
     if (config.requiresCoastal && !this.isCoastal(q, r)) return 'must be coastal';
     if (config.cost > 0 && this.canAfford && !this.canAfford(config.cost)) {
       return `need ${config.cost} materials`;
+    }
+    if (config.popReq > 0 && this.getAvailablePop && this.getAvailablePop() < config.popReq) {
+      return 'not enough population';
     }
     return null;
   }
