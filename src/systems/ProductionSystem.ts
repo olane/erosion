@@ -13,6 +13,10 @@ export class ProductionSystem {
   private refreshTile: (q: number, r: number) => void;
   private lastDay: number = -1;
 
+  foodRate: number = 0;
+  matRate: number = 0;
+  scienceRate: number = 0;
+
   constructor(
     resources: ResourceManager,
     buildings: BuildingManager,
@@ -60,7 +64,15 @@ export class ProductionSystem {
     this.recalculateCaps();
     this.resources.eat();
     this.resolveWorkforce();
-    this.produce();
+
+    const yields = this.computeYields();
+    this.resources.addFood(yields.food);
+    this.resources.addMaterials(yields.materials);
+    this.resources.addScience(yields.science);
+
+    this.foodRate = yields.food - this.resources.population;
+    this.matRate = yields.materials;
+    this.scienceRate = yields.science;
   }
 
   private resolveWorkforce(): void {
@@ -112,16 +124,20 @@ export class ProductionSystem {
     }
   }
 
-  private produce(): void {
+  private computeYields(): { food: number; materials: number; science: number } {
+    let food = 0;
+    let materials = 0;
+    let science = 0;
     const tiles = this.getTiles();
     for (const b of this.buildings.buildings.values()) {
       if (b.disabled) continue;
       const tile = tiles.get(hexKey(b.q, b.r));
       if (!tile || tile.buildingId !== b.id) continue;
-      const yields = getBuildingYields(b.buildingType, tile.tileType);
-      if (yields.food > 0) this.resources.addFood(yields.food);
-      if (yields.materials > 0) this.resources.addMaterials(yields.materials);
-      if (yields.science > 0) this.resources.addScience(yields.science);
+      const y = getBuildingYields(b.buildingType, tile.tileType);
+      food += y.food;
+      materials += y.materials;
+      science += y.science;
     }
+    return { food, materials, science };
   }
 }

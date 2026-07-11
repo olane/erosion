@@ -3,10 +3,12 @@ import { BuildingType, BUILDING_CONFIGS } from '../data/buildings.ts';
 import { TECH_CONFIGS } from '../data/tech.ts';
 import type { TechManager } from '../systems/TechManager.ts';
 import type { ResourceManager } from '../systems/ResourceManager.ts';
+import type { ProductionSystem } from '../systems/ProductionSystem.ts';
 
 export class GameUI {
   private time: TimeSystem;
   private resources: ResourceManager | null;
+  private production: ProductionSystem | null;
   private tech: TechManager | null;
   private container: HTMLDivElement;
   private timeEl: HTMLSpanElement;
@@ -28,10 +30,11 @@ export class GameUI {
   private buildMode: boolean = false;
   private activeBuildingType: BuildingType | null = null;
 
-  constructor(time: TimeSystem, resources?: ResourceManager, tech?: TechManager) {
+  constructor(time: TimeSystem, resources?: ResourceManager, tech?: TechManager, production?: ProductionSystem) {
     this.time = time;
     this.resources = resources ?? null;
     this.tech = tech ?? null;
+    this.production = production ?? null;
 
     this.container = this.buildDOM();
     document.getElementById('game-container')!.appendChild(this.container);
@@ -162,9 +165,17 @@ export class GameUI {
 
     if (this.resources) {
       const r = this.resources;
-      this.foodEl.textContent = `Food: ${Math.floor(r.food)}/${r.foodCap}`;
-      this.matEl.textContent = `Mat:  ${Math.floor(r.materials)}/${r.matCap}`;
-      this.scienceEl.textContent = `Sci:  ${Math.floor(r.science)}`;
+      const p = this.production;
+      const foodNet = p ? p.foodRate : 0;
+      const matNet = p ? p.matRate : 0;
+      const sciNet = p ? p.scienceRate : 0;
+
+      const sign = (v: number) => v > 0 ? `+${v}` : `${v}`;
+      const rateStr = (v: number) => v !== 0 ? ` (${sign(v)}/d)` : '';
+
+      this.foodEl.textContent = `Food: ${Math.floor(r.food)}/${r.foodCap}${rateStr(foodNet)}`;
+      this.matEl.textContent = `Mat:  ${Math.floor(r.materials)}/${r.matCap}${rateStr(matNet)}`;
+      this.scienceEl.textContent = `Sci:  ${Math.floor(r.science)}${rateStr(sciNet)}`;
       this.popEl.textContent = `Pop:  ${r.population}/${r.popCap}`;
     }
 
