@@ -106,4 +106,5 @@ export interface BuildingInstance {
   buildingType: BuildingType;
   q: number;
   r: number;
+  disabled: boolean;
 }

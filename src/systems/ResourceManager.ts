@@ -17,9 +17,12 @@ export class ResourceManager implements ResourceState {
   population: number = 5;
   popCap: number = 5;
 
+  onChanged: (() => void) | null = null;
+
   private popGrowthTimer: number = 0;
   private popDeclineTimer: number = 0;
   private static readonly POP_INTERVAL = 2;
+  private prevPop: number = 5;
 
   addFood(amount: number): number {
     const space = this.foodCap - this.food;
@@ -69,7 +72,8 @@ export class ResourceManager implements ResourceState {
     this.population = Math.min(this.population, this.popCap);
   }
 
-  consumeFoodForPopulation(popModifier: (delta: number) => void): void {
+  eat(): void {
+    this.prevPop = this.population;
     const required = this.population;
     if (this.food >= required) {
       this.food -= required;
@@ -78,7 +82,6 @@ export class ResourceManager implements ResourceState {
       if (this.popGrowthTimer >= ResourceManager.POP_INTERVAL && this.population < this.popCap) {
         this.popGrowthTimer = 0;
         this.population += 1;
-        popModifier(1);
       }
     } else {
       this.food = 0;
@@ -87,8 +90,10 @@ export class ResourceManager implements ResourceState {
       if (this.popDeclineTimer >= ResourceManager.POP_INTERVAL && this.population > 0) {
         this.popDeclineTimer = 0;
         this.population -= 1;
-        popModifier(-1);
       }
+    }
+    if (this.prevPop !== this.population && this.onChanged) {
+      this.onChanged();
     }
   }
 }

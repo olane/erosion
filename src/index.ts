@@ -11,6 +11,7 @@ export type { IErosionTarget, ErosionConfig } from './systems/ErosionSystem.ts';
 export { BuildingManager } from './systems/BuildingManager.ts';
 export { ResourceManager } from './systems/ResourceManager.ts';
 export type { ResourceState } from './systems/ResourceManager.ts';
+export { ProductionSystem } from './systems/ProductionSystem.ts';
 export { CameraController } from './systems/CameraController.ts';
 export { GameUI } from './ui/GameUI.ts';
 export * from './constants.ts';

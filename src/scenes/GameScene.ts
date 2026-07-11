@@ -3,6 +3,7 @@ import { GameMap } from '../map/GameMap.ts';
 import { TimeSystem } from '../systems/TimeSystem.ts';
 import { ErosionSystem } from '../systems/ErosionSystem.ts';
 import { ResourceManager } from '../systems/ResourceManager.ts';
+import { ProductionSystem } from '../systems/ProductionSystem.ts';
 import { GameUI } from '../ui/GameUI.ts';
 import { CameraController } from '../systems/CameraController.ts';
 
@@ -11,6 +12,7 @@ export class GameScene extends Phaser.Scene {
   gameTime!: TimeSystem;
   erosion!: ErosionSystem;
   resources!: ResourceManager;
+  production!: ProductionSystem;
   ui!: GameUI;
 
   private camera!: CameraController;
@@ -30,6 +32,11 @@ export class GameScene extends Phaser.Scene {
     this.gameTime = new TimeSystem();
     this.resources = new ResourceManager();
     this.erosion = new ErosionSystem(this.map, this.gameTime);
+    this.production = new ProductionSystem(
+      this.resources,
+      this.map.buildingManager,
+      () => this.map.tiles,
+    );
     this.ui = new GameUI(this.gameTime);
 
     this.map.onTileSelect = (info: string | null) => {
@@ -68,6 +75,7 @@ export class GameScene extends Phaser.Scene {
     if (dt <= 0) return;
 
     this.erosion.update();
+    this.production.update(this.gameTime.elapsed);
 
     const selectedInfo = this.map.getSelectedTileInfo();
     if (selectedInfo !== null) {
