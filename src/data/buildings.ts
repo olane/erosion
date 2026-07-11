@@ -19,10 +19,10 @@ export const BUILDING_CONFIGS: Record<BuildingType, BuildingTypeConfig> = {
     name: 'Farm',
     iconColor: 0x44cc44,
     iconShape: 'circle',
-    allowedTiles: [TileType.GRASS, TileType.FOREST, TileType.BEACH],
+    allowedTiles: [TileType.GRASS, TileType.FOREST, TileType.SAND],
     iconText: 'F',
     tileYieldModifiers: {
-      [TileType.BEACH]: { food: -0.5 },
+      [TileType.SAND]: { food: -0.5 },
     },
   },
   [BuildingType.QUARRY]: {

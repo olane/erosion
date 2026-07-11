@@ -1,7 +1,7 @@
 export enum TileType {
   WATER,
   SHALLOW_WATER,
-  BEACH,
+  SAND,
   GRASS,
   FOREST,
   ROCK,
@@ -37,8 +37,8 @@ export const TILE_CONFIGS: Record<TileType, TileTypeConfig> = {
     foodYield: 1,
     materialYield: 0,
   },
-  [TileType.BEACH]: {
-    name: 'Beach',
+  [TileType.SAND]: {
+    name: 'Sand',
     color: 0xd4c5a9,
     erodible: true,
     erosionResistance: 1,
@@ -88,8 +88,8 @@ export const EROSION_TRANSITION: Record<TileType, TileType | null> = {
   [TileType.WATER]: null,
   [TileType.SHALLOW_WATER]: null,
   [TileType.ROCK]: TileType.RUBBLE,
-  [TileType.FOREST]: TileType.BEACH,
-  [TileType.GRASS]: TileType.BEACH,
-  [TileType.BEACH]: TileType.SHALLOW_WATER,
-  [TileType.RUBBLE]: TileType.BEACH,
+  [TileType.FOREST]: TileType.SAND,
+  [TileType.GRASS]: TileType.SAND,
+  [TileType.SAND]: TileType.SHALLOW_WATER,
+  [TileType.RUBBLE]: TileType.SAND,
 };

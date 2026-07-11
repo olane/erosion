@@ -10,6 +10,7 @@ const NOISE_OCTAVES = 4;
 const STRETCH_R = 1.6;
 const ROCK_PCT = 0.10;
 const FOREST_PCT = 0.30;
+const INLAND_SAND_PCT = 0.20;
 
 export class MapGenerator {
   generate(): Map<string, TileData> {
@@ -101,9 +102,22 @@ export class MapGenerator {
       } else if (tile.tileType === TileType.GRASS) {
         const waterN = getWaterOrShallowNeighbors(tile.q, tile.r);
         if (waterN.length >= 2) {
-          tile.tileType = TileType.BEACH;
+          tile.tileType = TileType.SAND;
         }
       }
+    }
+
+    const inlandSandCandidates: { q: number; r: number; noise: number }[] = [];
+    for (const [, tile] of tiles) {
+      if (tile.tileType !== TileType.GRASS) continue;
+      if (getWaterOrShallowNeighbors(tile.q, tile.r).length > 0) continue;
+      inlandSandCandidates.push({ q: tile.q, r: tile.r, noise: tile.noiseValue });
+    }
+    inlandSandCandidates.sort((a, b) => a.noise - b.noise);
+    const inlandSandCount = Math.floor(inlandSandCandidates.length * INLAND_SAND_PCT);
+    for (let i = 0; i < inlandSandCount; i++) {
+      const tile = tiles.get(hexKey(inlandSandCandidates[i].q, inlandSandCandidates[i].r))!;
+      tile.tileType = TileType.SAND;
     }
 
     return tiles;

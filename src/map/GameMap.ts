@@ -120,8 +120,14 @@ export class GameMap {
     const bldgString = building
       ? `  |  ${BUILDING_CONFIGS[building.buildingType].name}`
       : '';
+    const tileName =
+      tile.tileType === TileType.SAND
+        ? coastal
+          ? 'Beach'
+          : 'Desert'
+        : config.name;
     return (
-      `(${q},${r}) ${config.name}${bldgString}  |  ` +
+      `(${q},${r}) ${tileName}${bldgString}  |  ` +
       `Erosion ${tile.erosionProgress.toFixed(0)}%  |  ` +
       `${coastal ? 'Coastal' : 'Inland'}  |  ` +
       `Rate ${tile.erosionRate.toFixed(2)}x  |  ` +
