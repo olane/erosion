@@ -75,7 +75,9 @@ export class GameMap {
           }
         }
 
-        const erosionRate = 0.6 + Math.random() * 1.2;
+        // Erosion softness: separate noise layer at lower freq for spatial coherence
+        const erosionNoise = fbm(q * 0.03, r * 0.03 * STRETCH_R, 3);
+        const erosionRate = 0.5 + erosionNoise * 1.0; // 0.5–1.5, clustered in bands
 
         this.tiles.set(hexKey(q, r), {
           q,
