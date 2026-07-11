@@ -14,7 +14,8 @@ export class GameMap {
   tiles: Map<string, TileData> = new Map();
   renderer: MapRenderer;
   buildingManager: BuildingManager;
-  onTileSelect: ((info: string | null) => void) | null = null;
+  onTileInspect: ((info: string | null) => void) | null = null;
+  onBuildPreview: ((info: string | null) => void) | null = null;
   onBuildPlaced: (() => void) | null = null;
   onBuildingRemoved: (() => void) | null = null;
   onCannotAfford: ((cost: number) => void) | null = null;
@@ -88,19 +89,19 @@ export class GameMap {
 
     if (this.renderer.isSelected(q, r)) {
       this.renderer.deselectTile();
-      if (this.onTileSelect) this.onTileSelect(null);
+      if (this.onTileInspect) this.onTileInspect(null);
       return;
     }
 
     this.renderer.selectTile(q, r);
     const info = this.buildTileInfo(q, r);
-    if (this.onTileSelect) this.onTileSelect(info);
+    if (this.onTileInspect) this.onTileInspect(info);
   }
 
   private handleTileHover(q: number, r: number): void {
     if (!this.buildMode || this.selectedBuildingType === null) return;
     const info = this.buildPreviewInfo(q, r);
-    if (this.onTileSelect) this.onTileSelect(info);
+    if (this.onBuildPreview) this.onBuildPreview(info);
   }
 
   private buildPreviewInfo(q: number, r: number): string {
@@ -184,7 +185,7 @@ export class GameMap {
     this.renderer.deselectTile();
     this.buildMode = true;
     this.selectedBuildingType = type;
-    if (this.onTileSelect) this.onTileSelect(null);
+    if (this.onTileInspect) this.onTileInspect(null);
   }
 
   exitBuildMode(): void {

@@ -44,7 +44,10 @@ export class GameScene extends Phaser.Scene {
     );
     this.ui = new GameUI(this.gameTime, this.resources, this.tech, this.production);
 
-    this.map.onTileSelect = (info: string | null) => {
+    this.map.onTileInspect = (info) => {
+      this.ui.showTileInfo(info);
+    };
+    this.map.onBuildPreview = (info) => {
       this.ui.showTileInfo(info);
     };
 
