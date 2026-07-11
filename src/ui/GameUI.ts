@@ -1,6 +1,5 @@
 import type { TimeSystem } from '../systems/TimeSystem.ts';
 import { BuildingType, BUILDING_CONFIGS } from '../data/buildings.ts';
-import { TECH_CONFIGS } from '../data/tech.ts';
 import { SECONDS_PER_DAY } from '../constants.ts';
 import type { TechManager } from '../systems/TechManager.ts';
 import type { ResourceManager } from '../systems/ResourceManager.ts';
@@ -201,10 +200,8 @@ export class GameUI {
 
   private buildTechText(): string {
     if (!this.tech) return '';
-    const available = this.tech.getAvailableNodes();
-    if (available.length === 0) return 'All tech researched';
-    const node = available[0];
-    const config = TECH_CONFIGS[node];
-    return `Tech: [${config.name} ${config.cost} sci] (T to research) | ${available.length} available`;
+    const info = this.tech.getNextTechInfo();
+    if (!info) return 'All tech researched';
+    return `Tech: [${info.name} ${info.cost} sci] (T to research) | ${info.availableCount} available`;
   }
 }

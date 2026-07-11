@@ -2,6 +2,12 @@ import { BuildingType, BUILDING_CONFIGS } from '../data/buildings.ts';
 import { TechNode, TECH_CONFIGS, getTechPrerequisites } from '../data/tech.ts';
 import type { ResourceManager } from './ResourceManager.ts';
 
+export interface NextTechInfo {
+  name: string;
+  cost: number;
+  availableCount: number;
+}
+
 export class TechManager {
   private researched: Set<TechNode> = new Set();
   private resources: ResourceManager;
@@ -41,5 +47,12 @@ export class TechManager {
     if (!this.resources.spendScience(config.cost)) return false;
     this.researched.add(node);
     return true;
+  }
+
+  getNextTechInfo(): NextTechInfo | null {
+    const available = this.getAvailableNodes();
+    if (available.length === 0) return null;
+    const config = TECH_CONFIGS[available[0]];
+    return { name: config.name, cost: config.cost, availableCount: available.length };
   }
 }
