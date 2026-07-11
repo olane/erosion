@@ -6,6 +6,7 @@ import { MAP_RADIUS, HEX_SIZE } from '../constants.ts';
 import { MapRenderer } from './MapRenderer.ts';
 import { MapGenerator } from './MapGenerator.ts';
 import { BuildingManager } from '../systems/BuildingManager.ts';
+import type { IResourceProvider } from '../systems/ResourceManager.ts';
 import type { TileData } from './types.ts';
 
 export type { TileData } from './types.ts';
@@ -19,9 +20,7 @@ export class GameMap {
   onBuildPlaced: (() => void) | null = null;
   onBuildingRemoved: (() => void) | null = null;
   onCannotAfford: ((cost: number) => void) | null = null;
-  canAfford: ((materials: number) => boolean) | null = null;
-  spendMaterials: ((amount: number) => boolean) | null = null;
-  getAvailablePop: (() => number) | null = null;
+  resourceProvider: IResourceProvider | null = null;
 
   buildMode: boolean = false;
   selectedBuildingType: BuildingType | null = null;
@@ -141,10 +140,10 @@ export class GameMap {
     if (config.isWall && tile.seaWalled) return 'already sea-walled';
     if (!this.hasAdjacentBuilding(q, r)) return 'no adjacent building';
     if (config.requiresCoastal && !this.isCoastal(q, r)) return 'must be coastal';
-    if (config.cost > 0 && this.canAfford && !this.canAfford(config.cost)) {
+    if (config.cost > 0 && this.resourceProvider && !this.resourceProvider.canAffordMaterials(config.cost)) {
       return `need ${config.cost} materials`;
     }
-    if (config.popReq > 0 && this.getAvailablePop && this.getAvailablePop() < config.popReq) {
+    if (config.popReq > 0 && this.resourceProvider && this.resourceProvider.getAvailablePopulation() < config.popReq) {
       return 'not enough population';
     }
     return null;
@@ -158,11 +157,11 @@ export class GameMap {
 
     const config = BUILDING_CONFIGS[this.selectedBuildingType];
     if (config.cost > 0) {
-      if (this.canAfford && !this.canAfford(config.cost)) {
+      if (this.resourceProvider && !this.resourceProvider.canAffordMaterials(config.cost)) {
         if (this.onCannotAfford) this.onCannotAfford(config.cost);
         return;
       }
-      if (this.spendMaterials) this.spendMaterials(config.cost);
+      if (this.resourceProvider) this.resourceProvider.spendMaterials(config.cost);
     }
 
     if (config.isWall) {

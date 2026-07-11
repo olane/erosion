@@ -8,6 +8,12 @@ export interface ResourceState {
   popCap: number;
 }
 
+export interface IResourceProvider {
+  canAffordMaterials(amount: number): boolean;
+  spendMaterials(amount: number): boolean;
+  getAvailablePopulation(): number;
+}
+
 export class ResourceManager implements ResourceState {
   food: number = 0;
   materials: number = 0;

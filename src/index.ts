@@ -10,7 +10,7 @@ export { ErosionSystem } from './systems/ErosionSystem.ts';
 export type { IErosionTarget, ErosionConfig } from './systems/ErosionSystem.ts';
 export { BuildingManager } from './systems/BuildingManager.ts';
 export { ResourceManager } from './systems/ResourceManager.ts';
-export type { ResourceState } from './systems/ResourceManager.ts';
+export type { ResourceState, IResourceProvider } from './systems/ResourceManager.ts';
 export { ProductionSystem } from './systems/ProductionSystem.ts';
 export { TechManager } from './systems/TechManager.ts';
 export type { NextTechInfo } from './systems/TechManager.ts';
