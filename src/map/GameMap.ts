@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { hexKey, getNeighbors } from './HexUtils.ts';
+import { hexKey, getNeighbors, hexDistance } from './HexUtils.ts';
 import { TileType, TILE_CONFIGS } from '../data/tiles.ts';
 import { BuildingType, BUILDING_CONFIGS, getBuildingYields } from '../data/buildings.ts';
 import { MAP_RADIUS, HEX_SIZE } from '../constants.ts';
@@ -141,16 +141,25 @@ export class GameMap {
     return true;
   }
 
-  // Pick a random inland tile that neighbors a coastal tile (one tile back from the sea).
+  // Pick a random inland tile that neighbors a coastal tile and is within 2 hexes of a Forest.
   placeInitialTownHall(): void {
+    const hasForestNearby = (q: number, r: number): boolean => {
+      for (const [, t] of this.tiles) {
+        if (t.tileType === TileType.FOREST && hexDistance({ q, r }, { q: t.q, r: t.r }) <= 2) {
+          return true;
+        }
+      }
+      return false;
+    };
+
     const candidates: TileData[] = [];
     for (const [, tile] of this.tiles) {
       if (!this.buildingManager.canPlace(BuildingType.TOWN_HALL, tile)) continue;
       if (this.isCoastal(tile.q, tile.r)) continue;
       const neighbors = getNeighbors(tile.q, tile.r);
-      if (neighbors.some((n) => this.isCoastal(n.q, n.r))) {
-        candidates.push(tile);
-      }
+      if (!neighbors.some((n) => this.isCoastal(n.q, n.r))) continue;
+      if (!hasForestNearby(tile.q, tile.r)) continue;
+      candidates.push(tile);
     }
     if (candidates.length === 0) return;
 
