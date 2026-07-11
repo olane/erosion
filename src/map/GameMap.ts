@@ -84,6 +84,8 @@ export class GameMap {
     const tile = this.tiles.get(hexKey(q, r));
     if (!tile || this.selectedBuildingType === null) return;
 
+    if (!this.hasAdjacentBuilding(q, r)) return;
+
     const result = this.buildingManager.placeBuilding(this.selectedBuildingType, tile);
     if (result !== null) {
       this.refreshTile(q, r);
@@ -100,6 +102,35 @@ export class GameMap {
   exitBuildMode(): void {
     this.buildMode = false;
     this.selectedBuildingType = null;
+  }
+
+  hasAdjacentBuilding(q: number, r: number): boolean {
+    const neighbors = getNeighbors(q, r);
+    for (const n of neighbors) {
+      const neighbor = this.tiles.get(hexKey(n.q, n.r));
+      if (neighbor && neighbor.buildingId !== null) return true;
+    }
+    return false;
+  }
+
+  // Pick a random inland tile that neighbors a coastal tile (one tile back from the sea).
+  placeInitialTownHall(): void {
+    const candidates: TileData[] = [];
+    for (const [, tile] of this.tiles) {
+      if (!this.buildingManager.canPlace(BuildingType.TOWN_HALL, tile)) continue;
+      if (this.isCoastal(tile.q, tile.r)) continue;
+      const neighbors = getNeighbors(tile.q, tile.r);
+      if (neighbors.some((n) => this.isCoastal(n.q, n.r))) {
+        candidates.push(tile);
+      }
+    }
+    if (candidates.length === 0) return;
+
+    const tile = candidates[Math.floor(Math.random() * candidates.length)];
+    const result = this.buildingManager.placeBuilding(BuildingType.TOWN_HALL, tile);
+    if (result !== null) {
+      this.refreshTile(tile.q, tile.r);
+    }
   }
 
   onBuildingLost(q: number, r: number): void {

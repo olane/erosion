@@ -1,6 +1,7 @@
 import { TileType } from './tiles.ts';
 
 export enum BuildingType {
+  TOWN_HALL,
   FARM,
   QUARRY,
 }
@@ -8,13 +9,20 @@ export enum BuildingType {
 export interface BuildingTypeConfig {
   name: string;
   iconColor: number;
-  iconShape: 'circle' | 'triangle';
+  iconShape: 'circle' | 'triangle' | 'square';
   allowedTiles: TileType[];
   iconText: string;
   tileYieldModifiers?: Partial<Record<TileType, { food?: number; material?: number }>>;
 }
 
 export const BUILDING_CONFIGS: Record<BuildingType, BuildingTypeConfig> = {
+  [BuildingType.TOWN_HALL]: {
+    name: 'Town Hall',
+    iconColor: 0xffaa44,
+    iconShape: 'square',
+    allowedTiles: [TileType.GRASS, TileType.FOREST, TileType.ROCK, TileType.RUBBLE, TileType.SAND],
+    iconText: 'T',
+  },
   [BuildingType.FARM]: {
     name: 'Farm',
     iconColor: 0x44cc44,

@@ -19,6 +19,7 @@ export class GameScene extends Phaser.Scene {
 
   create(): void {
     this.map = new GameMap(this);
+    this.map.placeInitialTownHall();
 
     const bounds = this.map.worldPixelBounds();
     this.cameras.main.setBounds(bounds.x, bounds.y, bounds.width, bounds.height);

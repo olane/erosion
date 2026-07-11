@@ -90,7 +90,7 @@ export class GameUI {
   private toggleBuild(): void {
     if (this.buildMode && this.activeBuildingType !== null) {
       const types = Object.values(BuildingType).filter(
-        (v): v is BuildingType => typeof v === 'number',
+        (v): v is BuildingType => typeof v === 'number' && v !== BuildingType.TOWN_HALL,
       );
       const currentIdx = types.indexOf(this.activeBuildingType);
       const nextType = types[(currentIdx + 1) % types.length];

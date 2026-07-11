@@ -150,6 +150,16 @@ export class MapRenderer {
       gfx.closePath();
       gfx.fillPath();
       gfx.strokePath();
+    } else if (config.iconShape === 'square') {
+      const s = iconSize * 0.85;
+      gfx.beginPath();
+      gfx.moveTo(x, y - s);
+      gfx.lineTo(x + s, y);
+      gfx.lineTo(x, y + s);
+      gfx.lineTo(x - s, y);
+      gfx.closePath();
+      gfx.fillPath();
+      gfx.strokePath();
     }
 
     if (danger) {
