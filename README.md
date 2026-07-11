@@ -10,6 +10,8 @@ A hex-tile-based city survival game built with Phaser 3 and TypeScript. The sea 
 
 **Time**: Real-time with pause and speed controls. Buildings take time to construct. Resources tick per second of game time.
 
+**Play online:** [olane.github.io/erosion](https://olane.github.io/erosion/)
+
 ## Usage
 
 ```bash
