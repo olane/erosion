@@ -3,7 +3,6 @@ import { hexKey, getHexVertices, getNeighbors } from './HexUtils.ts';
 import {
   TileType,
   TILE_CONFIGS,
-  EROSION_TRANSITION,
 } from '../data/tiles.ts';
 import { MAP_RADIUS, HEX_SIZE } from '../constants.ts';
 import { fbm } from './Noise.ts';
@@ -29,7 +28,11 @@ export class GameMap {
   tiles: Map<string, TileData> = new Map();
   scene: Phaser.Scene;
   container: Phaser.GameObjects.Container;
-  onTileSelect: ((info: string) => void) | null = null;
+  onTileSelect: ((info: string | null) => void) | null = null;
+
+  private selectedQ: number | null = null;
+  private selectedR: number | null = null;
+  private highlightGfx: Phaser.GameObjects.Graphics | null = null;
 
   constructor(scene: Phaser.Scene) {
     this.scene = scene;
@@ -244,21 +247,65 @@ export class GameMap {
   }
 
   private onTileClick(q: number, r: number): void {
-    const key = hexKey(q, r);
-    const tile = this.tiles.get(key);
-    if (!tile) return;
+    if (this.selectedQ === q && this.selectedR === r) {
+      this.deselectTile();
+      if (this.onTileSelect) this.onTileSelect(null);
+      return;
+    }
 
+    this.selectTile(q, r);
+    const info = this.buildTileInfo(q, r);
+    // eslint-disable-next-line no-console
+    console.log(info);
+    if (this.onTileSelect) this.onTileSelect(info);
+  }
+
+  private buildTileInfo(q: number, r: number): string {
+    const tile = this.tiles.get(hexKey(q, r));
+    if (!tile) return '';
     const config = TILE_CONFIGS[tile.tileType];
     const coastal = this.isCoastal(q, r);
-    const info =
+    return (
       `(${q},${r}) ${config.name}  |  ` +
       `Erosion ${tile.erosionProgress.toFixed(0)}%  |  ` +
       `${coastal ? 'Coastal' : 'Inland'}  |  ` +
       `Rate ${tile.erosionRate.toFixed(2)}x  |  ` +
-      `Food ${config.foodYield}  Mat ${config.materialYield}`;
-    // eslint-disable-next-line no-console
-    console.log(info);
-    if (this.onTileSelect) this.onTileSelect(info);
+      `Food ${config.foodYield}  Mat ${config.materialYield}`
+    );
+  }
+
+  getSelectedTileInfo(): string | null {
+    if (this.selectedQ === null || this.selectedR === null) return null;
+    return this.buildTileInfo(this.selectedQ, this.selectedR);
+  }
+
+  private selectTile(q: number, r: number): void {
+    this.deselectTile();
+
+    const { x, y } = this.axialToWorld(q, r);
+    const vertices = getHexVertices(x, y, HEX_SIZE - 1);
+
+    const gfx = this.scene.add.graphics();
+    gfx.lineStyle(2, 0xffdd44, 1);
+    gfx.beginPath();
+    gfx.moveTo(vertices[0].x, vertices[0].y);
+    for (let i = 1; i < 6; i++) gfx.lineTo(vertices[i].x, vertices[i].y);
+    gfx.closePath();
+    gfx.strokePath();
+
+    this.container.add(gfx);
+    this.highlightGfx = gfx;
+    this.selectedQ = q;
+    this.selectedR = r;
+  }
+
+  private deselectTile(): void {
+    if (this.highlightGfx) {
+      this.highlightGfx.destroy();
+      this.highlightGfx = null;
+    }
+    this.selectedQ = null;
+    this.selectedR = null;
   }
 
   centerPosition(): { x: number; y: number } {

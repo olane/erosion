@@ -57,8 +57,8 @@ export class GameUI {
     });
   }
 
-  showTileInfo(text: string): void {
-    this.tileInfoEl.textContent = text;
+  showTileInfo(text: string | null): void {
+    this.tileInfoEl.textContent = text ?? '';
   }
 
   update(): void {

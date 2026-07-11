@@ -32,7 +32,7 @@ export class GameScene extends Phaser.Scene {
     this.erosion = new ErosionSystem(this.map, this.gameTime);
     this.ui = new GameUI(this.gameTime);
 
-    this.map.onTileSelect = (info: string) => {
+    this.map.onTileSelect = (info: string | null) => {
       this.ui.showTileInfo(info);
     };
 
@@ -104,6 +104,12 @@ export class GameScene extends Phaser.Scene {
     if (dt <= 0) return;
 
     this.erosion.update();
+
+    const selectedInfo = this.map.getSelectedTileInfo();
+    if (selectedInfo !== null) {
+      this.ui.showTileInfo(selectedInfo);
+    }
+
     this.ui.update();
   }
 }
