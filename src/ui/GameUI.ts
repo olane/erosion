@@ -26,19 +26,35 @@ export class GameUI {
   }
 
   private buildDOM(): HTMLDivElement {
+    const span = (id: string, className?: string) => {
+      const el = document.createElement('span');
+      el.id = id;
+      if (className) el.className = className;
+      return el;
+    };
+    const div = (id: string, children: HTMLElement[]) => {
+      const el = document.createElement('div');
+      el.id = id;
+      children.forEach(c => el.appendChild(c));
+      return el;
+    };
+    const wrap = (...children: HTMLElement[]) => {
+      const el = document.createElement('div');
+      children.forEach(c => el.appendChild(c));
+      return el;
+    };
+
     const root = document.createElement('div');
     root.id = 'hud';
-    root.innerHTML = `
-      <div id="hud-left">
-        <div><span id="time"></span></div>
-        <div><span id="speed" class="clickable"></span></div>
-        <div><span id="pause" class="clickable"></span></div>
-      </div>
-      <div id="hud-right">
-        <div><span id="info"></span></div>
-        <div><span id="tile-info"></span></div>
-      </div>
-    `;
+    root.appendChild(div('hud-left', [
+      wrap(span('time')),
+      wrap(span('speed', 'clickable')),
+      wrap(span('pause', 'clickable')),
+    ]));
+    root.appendChild(div('hud-right', [
+      wrap(span('info')),
+      wrap(span('tile-info')),
+    ]));
     return root;
   }
 
