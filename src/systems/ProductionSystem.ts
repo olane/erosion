@@ -16,6 +16,7 @@ export class ProductionSystem {
   matRate: number = 0;
   scienceRate: number = 0;
   workforceShortfall: boolean = false;
+  totalPopReq: number = 0;
 
   constructor(
     resources: ResourceManager,
@@ -72,6 +73,7 @@ export class ProductionSystem {
     }
 
     this.workforceShortfall = this.resources.population < totalReq;
+    this.totalPopReq = totalReq;
 
     const matMult = this.workforceShortfall ? 0.5 : 1;
     const sciMult = this.workforceShortfall ? 0 : 1;

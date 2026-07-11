@@ -177,10 +177,11 @@ export class GameUI {
       this.matEl.textContent = `Mat:  ${Math.floor(r.materials)}/${r.matCap}${rateStr(matNet)}`;
       this.scienceEl.textContent = `Sci:  ${Math.floor(r.science)}${rateStr(sciNet)}`;
       const shortfall = p?.workforceShortfall ? ' (!)' : '';
+      const jobs = p ? ` | work ${p.totalPopReq}` : '';
       const growth = p && r.popProgress !== 0
         ? r.popProgress > 0 ? ` +${Math.round(r.popProgress * 100)}%` : ` ${Math.round(r.popProgress * 100)}%`
         : '';
-      this.popEl.textContent = `Pop:  ${r.population}/${r.popCap}${growth}${shortfall}`;
+      this.popEl.textContent = `Pop:  ${r.population}/${r.popCap}${jobs}${growth}${shortfall}`;
     }
 
     if (this.buildMode && this.activeBuildingType !== null) {
