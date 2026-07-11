@@ -52,7 +52,13 @@ export class GameScene extends Phaser.Scene {
 
     this.map.onBuildPlaced = () => {
       this.ui.cancelBuild();
+      this.production.recalculateCaps();
     };
+
+    this.map.canAfford = (materials: number) =>
+      this.resources.materials >= materials;
+    this.map.spendMaterials = (amount: number) =>
+      this.resources.spendMaterials(amount);
 
     this.camera = new CameraController(this);
 

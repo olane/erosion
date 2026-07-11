@@ -178,6 +178,29 @@ export class MapRenderer {
       gfx.closePath();
       gfx.fillPath();
       gfx.strokePath();
+    } else if (config.iconShape === 'diamond') {
+      const s = iconSize * 1.1;
+      gfx.beginPath();
+      gfx.moveTo(x, y - s);
+      gfx.lineTo(x + s * 0.7, y);
+      gfx.lineTo(x, y + s);
+      gfx.lineTo(x - s * 0.7, y);
+      gfx.closePath();
+      gfx.fillPath();
+      gfx.strokePath();
+    } else if (config.iconShape === 'hexagon') {
+      const s = iconSize;
+      gfx.beginPath();
+      for (let i = 0; i < 6; i++) {
+        const angle = (Math.PI / 180) * (60 * i - 30);
+        const vx = x + s * Math.cos(angle);
+        const vy = y + s * Math.sin(angle);
+        if (i === 0) gfx.moveTo(vx, vy);
+        else gfx.lineTo(vx, vy);
+      }
+      gfx.closePath();
+      gfx.fillPath();
+      gfx.strokePath();
     }
 
     if (danger) {

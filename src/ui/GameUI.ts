@@ -97,9 +97,12 @@ export class GameUI {
       this.activeBuildingType = nextType;
       if (this.onBuildSelect) this.onBuildSelect(nextType);
     } else {
+      const types = Object.values(BuildingType).filter(
+        (v): v is BuildingType => typeof v === 'number' && v !== BuildingType.TOWN_HALL,
+      );
       this.buildMode = true;
-      this.activeBuildingType = BuildingType.FARM;
-      if (this.onBuildSelect) this.onBuildSelect(BuildingType.FARM);
+      this.activeBuildingType = types[0];
+      if (this.onBuildSelect) this.onBuildSelect(types[0]);
     }
     this.updateDisplay();
   }
@@ -131,8 +134,10 @@ export class GameUI {
 
     if (this.buildMode && this.activeBuildingType !== null) {
       const config = BUILDING_CONFIGS[this.activeBuildingType];
+      const costStr = config.cost > 0 ? `  Cost: ${config.cost} mat` : '';
+      const popStr = config.popReq > 0 ? `  Pop: ${config.popReq}` : '';
       this.buildBtnEl.textContent = `Bldg: [${config.name}] (click to switch)`;
-      this.buildStatusEl.textContent = 'Click tile to place  |  Esc to cancel';
+      this.buildStatusEl.textContent = `Click tile to place${costStr}${popStr}  |  Esc to cancel`;
     } else {
       this.buildBtnEl.textContent = 'Build: [Click to start]';
       this.buildStatusEl.textContent = '';

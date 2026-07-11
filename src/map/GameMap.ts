@@ -16,6 +16,9 @@ export class GameMap {
   buildingManager: BuildingManager;
   onTileSelect: ((info: string | null) => void) | null = null;
   onBuildPlaced: (() => void) | null = null;
+  onCannotAfford: ((cost: number) => void) | null = null;
+  canAfford: ((materials: number) => boolean) | null = null;
+  spendMaterials: ((amount: number) => boolean) | null = null;
 
   buildMode: boolean = false;
   selectedBuildingType: BuildingType | null = null;
@@ -88,6 +91,15 @@ export class GameMap {
 
     if (!this.hasAdjacentBuilding(q, r)) return;
 
+    const config = BUILDING_CONFIGS[this.selectedBuildingType];
+    if (config.cost > 0) {
+      if (this.canAfford && !this.canAfford(config.cost)) {
+        if (this.onCannotAfford) this.onCannotAfford(config.cost);
+        return;
+      }
+      if (this.spendMaterials) this.spendMaterials(config.cost);
+    }
+
     const result = this.buildingManager.placeBuilding(this.selectedBuildingType, tile);
     if (result !== null) {
       this.refreshTile(q, r);
@@ -123,6 +135,8 @@ export class GameMap {
     if (!tile) return false;
     if (!this.buildingManager.canPlace(this.selectedBuildingType, tile)) return false;
     if (!this.hasAdjacentBuilding(q, r)) return false;
+    const buildingConfig = BUILDING_CONFIGS[this.selectedBuildingType];
+    if (buildingConfig.requiresCoastal && !this.isCoastal(q, r)) return false;
     return true;
   }
 
