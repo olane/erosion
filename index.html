@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Erosion</title>
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body { width: 100%; height: 100%; overflow: hidden; background: #111; }
+      #game-container { width: 100%; height: 100%; position: relative; }
+      canvas { display: block; }
+      #hud {
+        position: absolute; top: 0; left: 0; right: 0;
+        display: flex; justify-content: space-between;
+        padding: 10px 14px;
+        font-family: 'Courier New', monospace; font-size: 13px;
+        color: #e0e0e0; pointer-events: none; z-index: 10;
+        text-shadow: 0 1px 2px rgba(0,0,0,0.8);
+      }
+      #hud-left { display: flex; flex-direction: column; gap: 2px; }
+      #hud-right { text-align: right; }
+      #hud .clickable { cursor: pointer; pointer-events: auto; }
+      #hud .clickable:hover { color: #ffcc00; }
+    </style>
+  </head>
+  <body>
+    <div id="game-container"></div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
