@@ -11,20 +11,42 @@ import {
 import type { GameMap } from '../map/GameMap.ts';
 import type { TimeSystem } from './TimeSystem.ts';
 
+export interface ErosionConfig {
+  checkInterval: number;
+  baseProgress: number;
+  adjacencyBonus: number;
+  adjacencyMultiplier: number;
+  adjacencyDecayBase: number;
+  jitterMin: number;
+  jitterMax: number;
+}
+
+const DEFAULT_CONFIG: ErosionConfig = {
+  checkInterval: EROSION_CHECK_INTERVAL,
+  baseProgress: EROSION_BASE_PROGRESS,
+  adjacencyBonus: EROSION_ADJACENCY_BONUS,
+  adjacencyMultiplier: 2,
+  adjacencyDecayBase: 0.5,
+  jitterMin: 0.8,
+  jitterMax: 1.2,
+};
+
 export class ErosionSystem {
   private map: GameMap;
   private time: TimeSystem;
+  private config: ErosionConfig;
   private lastCheck: number = 0;
 
-  constructor(map: GameMap, time: TimeSystem) {
+  constructor(map: GameMap, time: TimeSystem, config?: Partial<ErosionConfig>) {
     this.map = map;
     this.time = time;
+    this.config = { ...DEFAULT_CONFIG, ...config };
   }
 
   update(): void {
     if (this.time.isPaused) return;
 
-    if (this.time.elapsed - this.lastCheck >= EROSION_CHECK_INTERVAL) {
+    if (this.time.elapsed - this.lastCheck >= this.config.checkInterval) {
       this.lastCheck = this.time.elapsed;
       this.tick();
     }
@@ -42,10 +64,12 @@ export class ErosionSystem {
 
       const waterAdjacentCount = waterNeighbors.length;
       const adjacencyBonus =
-        2 * EROSION_ADJACENCY_BONUS * (1 - Math.pow(0.5, waterAdjacentCount));
-      const jitter = 0.8 + Math.random() * 0.4; // ±20%
+        this.config.adjacencyMultiplier *
+        this.config.adjacencyBonus *
+        (1 - Math.pow(this.config.adjacencyDecayBase, waterAdjacentCount));
+      const jitter = this.config.jitterMin + Math.random() * (this.config.jitterMax - this.config.jitterMin);
       const progress =
-        (EROSION_BASE_PROGRESS / config.erosionResistance + adjacencyBonus) *
+        (this.config.baseProgress / config.erosionResistance + adjacencyBonus) *
         tile.erosionRate *
         jitter;
 
