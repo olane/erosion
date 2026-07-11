@@ -171,7 +171,7 @@ export class GameUI {
       const sciNet = p ? p.scienceRate : 0;
 
       const sign = (v: number) => v > 0 ? `+${v}` : `${v}`;
-      const rateStr = (v: number) => v !== 0 ? ` (${sign(v)}/d)` : '';
+      const rateStr = (v: number) => v !== 0 ? ` (${sign(v)})` : '';
 
       this.foodEl.textContent = `Food: ${Math.floor(r.food)}/${r.foodCap}${rateStr(foodNet)}`;
       this.matEl.textContent = `Mat:  ${Math.floor(r.materials)}/${r.matCap}${rateStr(matNet)}`;
