@@ -66,9 +66,8 @@ export class GameUI {
   }
 
   private updateDisplay(): void {
-    const days = Math.floor(this.time.elapsed / 60);
-    const hours = Math.floor((this.time.elapsed % 60) / 3.6);
-    this.timeEl.textContent = `Day ${days + 1}  ${hours.toString().padStart(2, '0')}:00`;
+    const days = Math.floor(this.time.elapsed / 3.6);
+    this.timeEl.textContent = `Day ${days + 1}`;
 
     const speedLabel = this.time.speed === 0 ? 'Paused' : `${this.time.speed}x`;
     this.speedEl.textContent = `Speed: [${speedLabel}] (click or Space)`;
