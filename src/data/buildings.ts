@@ -19,6 +19,7 @@ export interface BuildingYields {
   food: number;
   materials: number;
   science: number;
+  population: number;
 }
 
 export interface BuildingTypeConfig {
@@ -28,8 +29,6 @@ export interface BuildingTypeConfig {
   allowedTiles: TileType[];
   iconText: string;
   cost: number;
-  popReq: number;
-  popCap: number;
   storageFood?: number;
   storageMat?: number;
   yields: {
@@ -49,11 +48,9 @@ export const BUILDING_CONFIGS: Record<BuildingType, BuildingTypeConfig> = {
     allowedTiles: [TileType.GRASS, TileType.FOREST, TileType.ROCK, TileType.RUBBLE, TileType.SAND],
     iconText: 'T',
     cost: 0,
-    popReq: 0,
-    popCap: 5,
     storageFood: 100,
     storageMat: 100,
-    yields: { default: { materials: 1, science: 1 } },
+    yields: { default: { materials: 1, science: 1, population: 2 } },
     tier: 0,
   },
   [BuildingType.FARM]: {
@@ -63,8 +60,6 @@ export const BUILDING_CONFIGS: Record<BuildingType, BuildingTypeConfig> = {
     allowedTiles: [TileType.GRASS, TileType.FOREST, TileType.SAND],
     iconText: 'F',
     cost: 10,
-    popReq: 1,
-    popCap: 0,
     yields: {
       default: {},
       perTile: {
@@ -82,10 +77,8 @@ export const BUILDING_CONFIGS: Record<BuildingType, BuildingTypeConfig> = {
     allowedTiles: [TileType.ROCK, TileType.RUBBLE],
     iconText: 'Q',
     cost: 10,
-    popReq: 1,
-    popCap: 0,
     yields: {
-      default: {},
+      default: { population: -1 },
       perTile: {
         [TileType.ROCK]: { materials: 4 },
         [TileType.RUBBLE]: { materials: 3 },
@@ -100,10 +93,8 @@ export const BUILDING_CONFIGS: Record<BuildingType, BuildingTypeConfig> = {
     allowedTiles: [TileType.FOREST, TileType.GRASS],
     iconText: 'L',
     cost: 10,
-    popReq: 1,
-    popCap: 0,
     yields: {
-      default: {},
+      default: { population: -1 },
       perTile: {
         [TileType.FOREST]: { materials: 3 },
         [TileType.GRASS]: { materials: 1 },
@@ -118,10 +109,8 @@ export const BUILDING_CONFIGS: Record<BuildingType, BuildingTypeConfig> = {
     allowedTiles: [TileType.SAND],
     iconText: 'D',
     cost: 15,
-    popReq: 1,
-    popCap: 0,
     yields: {
-      default: {},
+      default: { population: -1 },
       perTile: { [TileType.SAND]: { food: 4 } },
     },
     requiresCoastal: true,
@@ -134,9 +123,7 @@ export const BUILDING_CONFIGS: Record<BuildingType, BuildingTypeConfig> = {
     allowedTiles: [TileType.GRASS, TileType.FOREST, TileType.ROCK, TileType.RUBBLE, TileType.SAND],
     iconText: 'H',
     cost: 15,
-    popReq: 0,
-    popCap: 5,
-    yields: { default: {} },
+    yields: { default: { food: -2, population: 1 } },
     tier: 0,
   },
   [BuildingType.SEA_WALL]: {
@@ -146,9 +133,7 @@ export const BUILDING_CONFIGS: Record<BuildingType, BuildingTypeConfig> = {
     allowedTiles: [TileType.SAND, TileType.GRASS],
     iconText: 'W',
     cost: 20,
-    popReq: 1,
-    popCap: 0,
-    yields: { default: {} },
+    yields: { default: { population: -1 } },
     requiresCoastal: true,
     isWall: true,
     tier: 0,
@@ -160,9 +145,7 @@ export const BUILDING_CONFIGS: Record<BuildingType, BuildingTypeConfig> = {
     allowedTiles: [TileType.GRASS, TileType.FOREST, TileType.ROCK, TileType.RUBBLE, TileType.SAND],
     iconText: 'S',
     cost: 20,
-    popReq: 2,
-    popCap: 0,
-    yields: { default: { science: 2 } },
+    yields: { default: { science: 2, population: -1 } },
     tier: 1,
   },
   [BuildingType.WAREHOUSE]: {
@@ -172,8 +155,6 @@ export const BUILDING_CONFIGS: Record<BuildingType, BuildingTypeConfig> = {
     allowedTiles: [TileType.GRASS, TileType.FOREST, TileType.ROCK, TileType.RUBBLE, TileType.SAND],
     iconText: 'R',
     cost: 15,
-    popReq: 1,
-    popCap: 0,
     storageFood: 100,
     storageMat: 100,
     yields: { default: {} },
@@ -186,9 +167,7 @@ export const BUILDING_CONFIGS: Record<BuildingType, BuildingTypeConfig> = {
     allowedTiles: [TileType.ROCK, TileType.RUBBLE],
     iconText: 'B',
     cost: 40,
-    popReq: 2,
-    popCap: 0,
-    yields: { default: {} },
+    yields: { default: { population: -2 } },
     tier: 2,
   },
   [BuildingType.ADVANCED_FARM]: {
@@ -198,8 +177,6 @@ export const BUILDING_CONFIGS: Record<BuildingType, BuildingTypeConfig> = {
     allowedTiles: [TileType.GRASS, TileType.FOREST, TileType.SAND],
     iconText: 'A',
     cost: 25,
-    popReq: 2,
-    popCap: 0,
     yields: {
       default: {},
       perTile: {
@@ -217,10 +194,8 @@ export const BUILDING_CONFIGS: Record<BuildingType, BuildingTypeConfig> = {
     allowedTiles: [TileType.ROCK, TileType.RUBBLE],
     iconText: 'M',
     cost: 25,
-    popReq: 2,
-    popCap: 0,
     yields: {
-      default: {},
+      default: { population: -2 },
       perTile: {
         [TileType.ROCK]: { materials: 6 },
         [TileType.RUBBLE]: { materials: 4 },
@@ -236,6 +211,7 @@ export function getBuildingYields(buildingType: BuildingType, tileType: TileType
     food: 0,
     materials: 0,
     science: 0,
+    population: 0,
     ...config.yields.default,
   };
   if (config.yields.perTile && config.yields.perTile[tileType]) {

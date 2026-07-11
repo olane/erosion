@@ -75,6 +75,13 @@ export class BuildController {
     const buildingConfig = BUILDING_CONFIGS[this._selectedType];
     if (buildingConfig.isWall && tile.seaWalled) return false;
     if (buildingConfig.requiresCoastal && !this.isCoastal(q, r)) return false;
+    if (
+      buildingConfig.cost > 0 &&
+      this.resourceProvider &&
+      !this.resourceProvider.canAffordMaterials(buildingConfig.cost)
+    ) {
+      return false;
+    }
     return true;
   }
 
@@ -99,13 +106,6 @@ export class BuildController {
     ) {
       return `need ${config.cost} materials`;
     }
-    if (
-      config.popReq > 0 &&
-      this.resourceProvider &&
-      this.resourceProvider.getAvailablePopulation() < config.popReq
-    ) {
-      return 'not enough population';
-    }
     return null;
   }
 
@@ -124,9 +124,10 @@ export class BuildController {
     }
     const yields = getBuildingYields(this._selectedType, tile.tileType);
     const parts: string[] = [];
-    if (yields.food) parts.push(`Food +${yields.food}`);
-    if (yields.materials) parts.push(`Mat +${yields.materials}`);
-    if (yields.science) parts.push(`Sci +${yields.science}`);
+    if (yields.food) parts.push(`Food ${yields.food > 0 ? '+' : ''}${yields.food}`);
+    if (yields.materials) parts.push(`Mat ${yields.materials > 0 ? '+' : ''}${yields.materials}`);
+    if (yields.science) parts.push(`Sci ${yields.science > 0 ? '+' : ''}${yields.science}`);
+    if (yields.population) parts.push(`Pop ${yields.population > 0 ? '+' : ''}${yields.population}`);
     const yieldStr = parts.length > 0 ? parts.join(', ') : 'no yield';
     const costStr = config.cost > 0 ? `Cost: ${config.cost} mat` : '';
     return `${config.name} — ${yieldStr}${costStr ? ` | ${costStr}` : ''}`;

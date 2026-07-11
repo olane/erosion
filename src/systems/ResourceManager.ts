@@ -2,35 +2,34 @@ export interface ResourceState {
   food: number;
   materials: number;
   science: number;
+  population: number;
   foodCap: number;
   matCap: number;
-  population: number;
-  popCap: number;
 }
 
 export interface IResourceProvider {
   canAffordMaterials(amount: number): boolean;
   spendMaterials(amount: number): boolean;
-  getAvailablePopulation(): number;
 }
 
 export class ResourceManager implements ResourceState {
   food: number = 0;
   materials: number = 0;
   science: number = 0;
+  population: number = 2;
   foodCap: number = 100;
   matCap: number = 100;
-  population: number = 2;
-  popCap: number = 5;
 
   onChanged: (() => void) | null = null;
 
-  private popGrowthTimer: number = 0;
-  private popDeclineTimer: number = 0;
-  private static readonly POP_INTERVAL = 2;
-  popProgress: number = 0;
+  negativePopDays: number = 0;
+  static readonly NEGATIVE_POP_GRACE_DAYS = 7;
 
   addFood(amount: number): number {
+    if (amount < 0) {
+      this.food += amount;
+      return amount;
+    }
     const space = this.foodCap - this.food;
     const added = Math.min(amount, space);
     this.food += added;
@@ -38,6 +37,10 @@ export class ResourceManager implements ResourceState {
   }
 
   addMaterials(amount: number): number {
+    if (amount < 0) {
+      this.materials += amount;
+      return amount;
+    }
     const space = this.matCap - this.materials;
     const added = Math.min(amount, space);
     this.materials += added;
@@ -45,7 +48,11 @@ export class ResourceManager implements ResourceState {
   }
 
   addScience(amount: number): void {
-    this.science += amount;
+    this.science += Math.max(0, amount);
+  }
+
+  addPopulation(amount: number): void {
+    this.population += amount;
   }
 
   spendFood(amount: number): boolean {
@@ -66,6 +73,12 @@ export class ResourceManager implements ResourceState {
     return true;
   }
 
+  spendPopulation(amount: number): boolean {
+    if (this.population < amount) return false;
+    this.population -= amount;
+    return true;
+  }
+
   setCaps(foodCap: number, matCap: number): void {
     this.foodCap = Math.max(0, foodCap);
     this.matCap = Math.max(0, matCap);
@@ -73,37 +86,12 @@ export class ResourceManager implements ResourceState {
     this.materials = Math.min(this.materials, this.matCap);
   }
 
-  setPopCap(cap: number): void {
-    this.popCap = Math.max(0, cap);
-    this.population = Math.min(this.population, this.popCap);
-  }
-
-  eat(): void {
-    const prevPop = this.population;
-    const required = this.population;
-    if (this.food >= required) {
-      this.food -= required;
-      this.popGrowthTimer += 1;
-      this.popDeclineTimer = 0;
-      this.popProgress = this.popGrowthTimer / ResourceManager.POP_INTERVAL;
-      if (this.popGrowthTimer >= ResourceManager.POP_INTERVAL && this.population < this.popCap) {
-        this.popGrowthTimer = 0;
-        this.popProgress = 0;
-        this.population += 1;
-      }
+  tickNegativePop(): boolean {
+    if (this.population < 0) {
+      this.negativePopDays++;
     } else {
-      this.food = 0;
-      this.popGrowthTimer = 0;
-      this.popDeclineTimer += 1;
-      this.popProgress = -this.popDeclineTimer / ResourceManager.POP_INTERVAL;
-      if (this.popDeclineTimer >= ResourceManager.POP_INTERVAL && this.population > 0) {
-        this.popDeclineTimer = 0;
-        this.popProgress = 0;
-        this.population -= 1;
-      }
+      this.negativePopDays = 0;
     }
-    if (prevPop !== this.population && this.onChanged) {
-      this.onChanged();
-    }
+    return this.negativePopDays >= ResourceManager.NEGATIVE_POP_GRACE_DAYS;
   }
 }

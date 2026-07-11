@@ -201,9 +201,10 @@ export class GameMap {
     if (building) {
       const y = getBuildingYields(building.buildingType, tile.tileType);
       const parts: string[] = [];
-      if (y.food) parts.push(`Food +${y.food}`);
-      if (y.materials) parts.push(`Mat +${y.materials}`);
-      if (y.science) parts.push(`Sci +${y.science}`);
+      if (y.food) parts.push(`Food ${y.food > 0 ? '+' : ''}${y.food}`);
+      if (y.materials) parts.push(`Mat ${y.materials > 0 ? '+' : ''}${y.materials}`);
+      if (y.science) parts.push(`Sci ${y.science > 0 ? '+' : ''}${y.science}`);
+      if (y.population) parts.push(`Pop ${y.population > 0 ? '+' : ''}${y.population}`);
       if (parts.length) yieldStr = ` | ${parts.join(' ')}`;
     }
     const wallStr = tile.seaWalled ? ' | Sea Walled' : '';

@@ -21,6 +21,7 @@ export class GameScene extends Phaser.Scene {
   ui!: GameUI;
 
   private camera!: CameraController;
+  private gameOver = false;
 
   constructor() {
     super({ key: 'GameScene' });
@@ -37,6 +38,7 @@ export class GameScene extends Phaser.Scene {
     this.resources = new ResourceManager();
     this.resources.food = 20;
     this.resources.materials = 10;
+    this.resources.population = 5;
     this.tech = new TechManager(this.resources);
     this.erosion = new ErosionSystem(this.map, this.gameTime);
     this.production = new ProductionSystem(
@@ -45,10 +47,13 @@ export class GameScene extends Phaser.Scene {
       () => this.map.tiles,
     );
 
+    this.production.onGameOver = () => {
+      this.triggerGameOver();
+    };
+
     this.map.resourceProvider = {
       canAffordMaterials: (amount: number) => this.resources.materials >= amount,
       spendMaterials: (amount: number) => this.resources.spendMaterials(amount),
-      getAvailablePopulation: () => this.resources.population - this.production.totalPopReq,
     };
 
     const getAvailableTypes = (): BuildingType[] => {
@@ -77,6 +82,7 @@ export class GameScene extends Phaser.Scene {
       this.ui.showTileInfo(info);
     };
     buildCtrl.onChanged = () => {
+      this.map.renderer.deselectTile();
       this.ui.update();
     };
 
@@ -117,6 +123,8 @@ export class GameScene extends Phaser.Scene {
   }
 
   update(_time: number, delta: number): void {
+    if (this.gameOver) return;
+
     this.camera.panWithKeys();
 
     const dt = this.gameTime.update(delta);
@@ -125,11 +133,29 @@ export class GameScene extends Phaser.Scene {
     this.erosion.update();
     this.production.update(this.gameTime.elapsed);
 
-    const selectedInfo = this.map.getSelectedTileInfo();
-    if (selectedInfo !== null) {
-      this.ui.showTileInfo(selectedInfo);
+    if (!this.map.buildController?.buildMode) {
+      const selectedInfo = this.map.getSelectedTileInfo();
+      if (selectedInfo !== null) {
+        this.ui.showTileInfo(selectedInfo);
+      }
     }
 
     this.ui.update();
+  }
+
+  private triggerGameOver(): void {
+    if (this.gameOver) return;
+    this.gameOver = true;
+
+    this.gameTime.speed = 0;
+
+    const overlay = document.createElement('div');
+    overlay.id = 'game-over';
+    overlay.textContent = 'GAME OVER — Your settlement was abandoned due to population collapse.';
+    overlay.style.cssText =
+      'position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);' +
+      'background:rgba(180,0,0,0.9);color:#fff;padding:20px 40px;font-size:24px;' +
+      'border-radius:8px;z-index:1000;text-align:center;';
+    document.getElementById('game-container')!.appendChild(overlay);
   }
 }

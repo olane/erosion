@@ -2,7 +2,7 @@ import type { TimeSystem } from '../systems/TimeSystem.ts';
 import { BUILDING_CONFIGS } from '../data/buildings.ts';
 import { SECONDS_PER_DAY } from '../constants.ts';
 import type { TechManager } from '../systems/TechManager.ts';
-import type { ResourceManager } from '../systems/ResourceManager.ts';
+import { ResourceManager } from '../systems/ResourceManager.ts';
 import type { ProductionSystem } from '../systems/ProductionSystem.ts';
 import type { BuildController } from '../systems/BuildController.ts';
 
@@ -135,7 +135,7 @@ export class GameUI {
     const speedLabel = this.time.speed === 0 ? 'Paused' : `${this.time.speed}x`;
     this.speedEl.textContent = `Speed: [${speedLabel}] (Space)`;
 
-    this.pauseEl.textContent = this.time.isPaused ? '▶ Resume' : '⏸ Pause';
+    this.pauseEl.textContent = this.time.isPaused ? '\u25B6 Resume' : '\u23F8 Pause';
 
     if (this.resources) {
       const r = this.resources;
@@ -143,21 +143,28 @@ export class GameUI {
 
       const sign = (v: number) => (v > 0 ? `+${v}` : `${v}`);
       const rate = (v: number) => (v !== 0 ? ` (${sign(v)})` : '');
-      const pen = p?.workforceShortfall;
 
       this.foodEl.textContent = `Food: ${Math.floor(r.food)}/${r.foodCap}${rate(p?.foodRate ?? 0)}`;
-      this.matEl.textContent = `Mat:  ${Math.floor(r.materials)}/${r.matCap}${rate(p?.matRate ?? 0)}${pen ? ' (!) (-50%)' : ''}`;
-      this.scienceEl.textContent = `Sci:  ${Math.floor(r.science)}${rate(p?.scienceRate ?? 0)}${pen ? ' (!) (-100%)' : ''}`;
-      const jobs = p ? ` | work ${p.totalPopReq}` : '';
-      this.popEl.textContent = `Pop:  ${r.population}/${r.popCap}${jobs}`;
+      this.matEl.textContent = `Mat:  ${Math.floor(r.materials)}/${r.matCap}${rate(p?.matRate ?? 0)}`;
+      this.scienceEl.textContent = `Sci:  ${Math.floor(r.science)}${rate(p?.scienceRate ?? 0)}`;
+      this.popEl.textContent = `Pop:  ${Math.floor(r.population)}${rate(p?.popRate ?? 0)}`;
+
+      if (r.population < 0) {
+        const remaining = ResourceManager.NEGATIVE_POP_GRACE_DAYS - r.negativePopDays;
+        const warnClass = remaining <= 3 ? 'pop-danger' : 'pop-warn';
+        this.popEl.className = warnClass;
+        this.popEl.textContent +=
+          `  |  WARNING: Negative population! ${remaining} day${remaining !== 1 ? 's' : ''} to fix or game over`;
+      } else {
+        this.popEl.className = '';
+      }
     }
 
     if (this.buildCtrl && this.buildCtrl.buildMode && this.buildCtrl.selectedType !== null) {
       const config = BUILDING_CONFIGS[this.buildCtrl.selectedType];
       const costStr = config.cost > 0 ? `Cost: ${config.cost} mat` : 'Free';
-      const popStr = config.popReq > 0 ? ` | Req: ${config.popReq} pop` : '';
       this.buildBtnEl.textContent = `Bldg: [${config.name}]`;
-      this.buildStatusEl.textContent = `${costStr}${popStr} | Click tile to place | Esc to cancel`;
+      this.buildStatusEl.textContent = `${costStr} | Click tile to place | Esc to cancel`;
     } else {
       this.buildBtnEl.textContent = 'Build: [B] (click to start)';
       this.buildStatusEl.textContent = '';
