@@ -33,7 +33,7 @@ export class GameScene extends Phaser.Scene {
     this.gameTime = new TimeSystem();
     this.resources = new ResourceManager();
     this.resources.food = 20;
-    this.resources.materials = 25;
+    this.resources.materials = 10;
     this.tech = new TechManager(this.resources);
     this.erosion = new ErosionSystem(this.map, this.gameTime);
     this.production = new ProductionSystem(
