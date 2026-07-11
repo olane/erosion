@@ -8,14 +8,6 @@ export enum TileType {
   RUBBLE,
 }
 
-export enum Zone {
-  OCEAN,
-  COAST,
-  LOWLAND,
-  HIGHLAND,
-  PEAK,
-}
-
 export interface TileTypeConfig {
   name: string;
   color: number;
@@ -98,12 +90,4 @@ export const EROSION_TRANSITION: Partial<Record<TileType, TileType>> = {
   [TileType.GRASS]: TileType.BEACH,
   [TileType.BEACH]: TileType.SHALLOW_WATER,
   [TileType.RUBBLE]: TileType.BEACH,
-};
-
-export const ZONE_TILES: Record<Zone, TileType[]> = {
-  [Zone.OCEAN]: [TileType.WATER],
-  [Zone.COAST]: [TileType.BEACH, TileType.SHALLOW_WATER],
-  [Zone.LOWLAND]: [TileType.GRASS, TileType.FOREST],
-  [Zone.HIGHLAND]: [TileType.ROCK, TileType.FOREST],
-  [Zone.PEAK]: [TileType.ROCK],
 };

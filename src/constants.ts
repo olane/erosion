@@ -2,8 +2,6 @@ export const HEX_SIZE = 32;
 
 export const MAP_RADIUS = 12;
 
-export const SEA_LEVEL = 2;
-
 export const EROSION_CHECK_INTERVAL = 30;
 
 export const EROSION_BASE_PROGRESS = 10;

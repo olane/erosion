@@ -4,21 +4,26 @@ import {
   TileType,
   TILE_CONFIGS,
   EROSION_TRANSITION,
-  Zone,
-  ZONE_TILES,
 } from '../data/tiles.ts';
-import { MAP_RADIUS, HEX_SIZE, SEA_LEVEL } from '../constants.ts';
-import type { AxialCoords } from './HexUtils.ts';
+import { MAP_RADIUS, HEX_SIZE } from '../constants.ts';
+import { fbm } from './Noise.ts';
 
 export interface TileData {
   q: number;
   r: number;
   tileType: TileType;
-  zone: Zone;
+  noiseValue: number;
   erosionProgress: number;
+  erosionRate: number;
   buildingId: string | null;
   graphics: Phaser.GameObjects.Graphics;
 }
+
+const NOISE_SCALE = 0.07;
+const NOISE_OCTAVES = 4;
+
+// Stretch the noise input to create directional features (peninsulas)
+const STRETCH_R = 1.6;
 
 export class GameMap {
   tiles: Map<string, TileData> = new Map();
@@ -36,51 +41,98 @@ export class GameMap {
   generate(): void {
     this.tiles.clear();
 
+    // Pass 1: compute noise and initial land/water + terrain
     for (let q = -MAP_RADIUS; q <= MAP_RADIUS; q++) {
       const rMin = Math.max(-MAP_RADIUS, -q - MAP_RADIUS);
       const rMax = Math.min(MAP_RADIUS, -q + MAP_RADIUS);
       for (let r = rMin; r <= rMax; r++) {
         const dist = Math.max(Math.abs(q), Math.abs(r), Math.abs(-q - r));
-        const key = hexKey(q, r);
 
-        const coastRing = MAP_RADIUS - SEA_LEVEL;
+        const nx = q * NOISE_SCALE;
+        const ny = r * NOISE_SCALE * STRETCH_R;
+        const noise = fbm(nx, ny, NOISE_OCTAVES);
 
-        let zone: Zone;
+        // Radial falloff: near center = land, near edge = water.
+        // Noise creates the organic boundary in the middle zone.
+        const edgeFactor = dist / MAP_RADIUS;
+        const landThreshold = edgeFactor * 1.25 - 0.1;
+
         let tileType: TileType;
 
-        if (dist > coastRing) {
-          zone = Zone.OCEAN;
+        if (noise < landThreshold) {
           tileType = TileType.WATER;
-        } else if (dist === coastRing) {
-          zone = Zone.COAST;
-          tileType = this.pickTileType(zone);
-        } else if (dist >= coastRing - 2) {
-          zone = Zone.LOWLAND;
-          tileType = this.pickTileType(zone);
-        } else if (dist >= 1) {
-          zone = Zone.HIGHLAND;
-          tileType = this.pickTileType(zone);
         } else {
-          zone = Zone.PEAK;
-          tileType = TileType.ROCK;
+          // Land — terrain from noise height
+          if (noise > 0.78) {
+            tileType = TileType.ROCK;
+          } else if (noise > 0.55) {
+            tileType = TileType.FOREST;
+          } else {
+            tileType = TileType.GRASS;
+          }
         }
 
-        this.tiles.set(key, {
+        const erosionRate = 0.6 + Math.random() * 1.2;
+
+        this.tiles.set(hexKey(q, r), {
           q,
           r,
           tileType,
-          zone,
+          noiseValue: noise,
           erosionProgress: 0,
+          erosionRate,
           buildingId: null,
           graphics: null as unknown as Phaser.GameObjects.Graphics,
         });
       }
     }
+
+    // Pass 2: refine — shallow water and beaches
+    for (const [, tile] of this.tiles) {
+      if (tile.tileType === TileType.WATER) {
+        if (this.getLandNeighbors(tile.q, tile.r).length > 0) {
+          tile.tileType = TileType.SHALLOW_WATER;
+        }
+      } else if (
+        tile.tileType === TileType.GRASS ||
+        tile.tileType === TileType.FOREST
+      ) {
+        const waterN = this.getWaterOrShallowNeighbors(tile.q, tile.r);
+        if (waterN.length >= 2 && tile.noiseValue < 0.55) {
+          tile.tileType = TileType.BEACH;
+        }
+      }
+    }
   }
 
-  private pickTileType(zone: Zone): TileType {
-    const options = ZONE_TILES[zone];
-    return options[Math.floor(Math.random() * options.length)];
+  private getLandNeighbors(q: number, r: number): TileData[] {
+    const result: TileData[] = [];
+    for (const n of getNeighbors(q, r)) {
+      const tile = this.tiles.get(hexKey(n.q, n.r));
+      if (
+        tile &&
+        tile.tileType !== TileType.WATER &&
+        tile.tileType !== TileType.SHALLOW_WATER
+      ) {
+        result.push(tile);
+      }
+    }
+    return result;
+  }
+
+  private getWaterOrShallowNeighbors(q: number, r: number): TileData[] {
+    const result: TileData[] = [];
+    for (const n of getNeighbors(q, r)) {
+      const tile = this.tiles.get(hexKey(n.q, n.r));
+      if (
+        tile &&
+        (tile.tileType === TileType.WATER ||
+          tile.tileType === TileType.SHALLOW_WATER)
+      ) {
+        result.push(tile);
+      }
+    }
+    return result;
   }
 
   private render(): void {
@@ -171,25 +223,11 @@ export class GameMap {
     }
   }
 
-  getErodibleNeighbors(q: number, r: number): TileData[] {
-    const neighbors = getNeighbors(q, r);
-    const result: TileData[] = [];
-    for (const n of neighbors) {
-      const key = hexKey(n.q, n.r);
-      const tile = this.tiles.get(key);
-      if (tile && TILE_CONFIGS[tile.tileType].erodible) {
-        result.push(tile);
-      }
-    }
-    return result;
-  }
-
   getWaterNeighbors(q: number, r: number): TileData[] {
     const neighbors = getNeighbors(q, r);
     const result: TileData[] = [];
     for (const n of neighbors) {
-      const key = hexKey(n.q, n.r);
-      const tile = this.tiles.get(key);
+      const tile = this.tiles.get(hexKey(n.q, n.r));
       if (
         tile &&
         (tile.tileType === TileType.WATER ||
@@ -216,6 +254,7 @@ export class GameMap {
       `(${q},${r}) ${config.name}  |  ` +
       `Erosion ${tile.erosionProgress.toFixed(0)}%  |  ` +
       `${coastal ? 'Coastal' : 'Inland'}  |  ` +
+      `Rate ${tile.erosionRate.toFixed(2)}x  |  ` +
       `Food ${config.foodYield}  Mat ${config.materialYield}`;
     // eslint-disable-next-line no-console
     console.log(info);

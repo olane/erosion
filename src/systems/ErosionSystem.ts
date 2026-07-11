@@ -42,8 +42,9 @@ export class ErosionSystem {
 
       const waterAdjacentCount = waterNeighbors.length;
       const progress =
-        EROSION_BASE_PROGRESS / config.erosionResistance +
-        waterAdjacentCount * EROSION_ADJACENCY_BONUS;
+        (EROSION_BASE_PROGRESS / config.erosionResistance +
+          waterAdjacentCount * EROSION_ADJACENCY_BONUS) *
+        tile.erosionRate;
 
       tile.erosionProgress += progress;
 

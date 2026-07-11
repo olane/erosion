@@ -1,5 +1,15 @@
 import Phaser from 'phaser';
 import { GameScene } from './scenes/GameScene.ts';
+import { setNoiseSeed, getNoiseSeed } from './map/Noise.ts';
+
+// Allow ?seed=123 in URL for reproducible maps
+const params = new URLSearchParams(window.location.search);
+const urlSeed = params.get('seed');
+if (urlSeed) {
+  setNoiseSeed(parseInt(urlSeed, 10));
+}
+// eslint-disable-next-line no-console
+console.log(`Map seed: ${getNoiseSeed()}`);
 
 const config: Phaser.Types.Core.GameConfig = {
   type: Phaser.AUTO,
