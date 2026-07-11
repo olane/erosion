@@ -43,10 +43,10 @@ export class ErosionSystem {
   private config: ErosionConfig;
   private lastCheck: number = 0;
 
-  constructor(map: IErosionTarget, time: IClock, config?: Partial<ErosionConfig>) {
+  constructor(map: IErosionTarget, time: IClock, config: ErosionConfig = DEFAULT_CONFIG) {
     this.map = map;
     this.time = time;
-    this.config = { ...DEFAULT_CONFIG, ...config };
+    this.config = config;
   }
 
   update(): void {
