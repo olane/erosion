@@ -24,6 +24,10 @@ const NOISE_OCTAVES = 4;
 // Stretch the noise input to create directional features (peninsulas)
 const STRETCH_R = 1.6;
 
+// Percentile thresholds for terrain assignment (land tiles only)
+const ROCK_PCT = 0.10;
+const FOREST_PCT = 0.30; // cumulative: 10% rock, 20% forest, 70% grass
+
 export class GameMap {
   tiles: Map<string, TileData> = new Map();
   scene: Phaser.Scene;
@@ -44,7 +48,9 @@ export class GameMap {
   generate(): void {
     this.tiles.clear();
 
-    // Pass 1: compute noise and initial land/water + terrain
+    const landTiles: { q: number; r: number; noise: number }[] = [];
+
+    // Pass 1a: compute noise, determine land vs water, collect land tiles
     for (let q = -MAP_RADIUS; q <= MAP_RADIUS; q++) {
       const rMin = Math.max(-MAP_RADIUS, -q - MAP_RADIUS);
       const rMax = Math.min(MAP_RADIUS, -q + MAP_RADIUS);
@@ -55,27 +61,12 @@ export class GameMap {
         const ny = r * NOISE_SCALE * STRETCH_R;
         const noise = fbm(nx, ny, NOISE_OCTAVES);
 
-        // Radial falloff: near center = land, near edge = water.
-        // Noise creates the organic boundary in the middle zone.
         const edgeFactor = dist / MAP_RADIUS;
         const landThreshold = edgeFactor * 1.25 - 0.1;
 
-        let tileType: TileType;
+        const isLand = noise >= landThreshold;
+        const tileType = isLand ? TileType.GRASS : TileType.WATER;
 
-        if (noise < landThreshold) {
-          tileType = TileType.WATER;
-        } else {
-          // Land — terrain from noise height
-          if (noise > 0.78) {
-            tileType = TileType.ROCK;
-          } else if (noise > 0.55) {
-            tileType = TileType.FOREST;
-          } else {
-            tileType = TileType.GRASS;
-          }
-        }
-
-        // Erosion softness: noise gives spatial bands, random adds per-tile scatter
         const erosionNoise = fbm(q * 0.04, r * 0.04 * STRETCH_R, 3);
         const erosionRate = 0.5 + erosionNoise * 0.5 + Math.random() * 0.5;
 
@@ -89,6 +80,22 @@ export class GameMap {
           buildingId: null,
           graphics: null as unknown as Phaser.GameObjects.Graphics,
         });
+
+        if (isLand) {
+          landTiles.push({ q, r, noise });
+        }
+      }
+    }
+
+    // Pass 1b: assign terrain by percentile (ensures consistent proportions per map)
+    landTiles.sort((a, b) => b.noise - a.noise); // highest noise first
+    for (let i = 0; i < landTiles.length; i++) {
+      const pct = i / landTiles.length;
+      const tile = this.tiles.get(hexKey(landTiles[i].q, landTiles[i].r))!;
+      if (pct < ROCK_PCT) {
+        tile.tileType = TileType.ROCK;
+      } else if (pct < ROCK_PCT + FOREST_PCT) {
+        tile.tileType = TileType.FOREST;
       }
     }
 
@@ -98,12 +105,9 @@ export class GameMap {
         if (this.getLandNeighbors(tile.q, tile.r).length > 0) {
           tile.tileType = TileType.SHALLOW_WATER;
         }
-      } else if (
-        tile.tileType === TileType.GRASS ||
-        tile.tileType === TileType.FOREST
-      ) {
+      } else if (tile.tileType === TileType.GRASS) {
         const waterN = this.getWaterOrShallowNeighbors(tile.q, tile.r);
-        if (waterN.length >= 2 && tile.noiseValue < 0.55) {
+        if (waterN.length >= 2) {
           tile.tileType = TileType.BEACH;
         }
       }
