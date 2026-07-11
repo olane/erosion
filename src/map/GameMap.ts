@@ -1,48 +1,35 @@
 import Phaser from 'phaser';
-import { hexKey, getHexVertices, getNeighbors } from './HexUtils.ts';
+import { hexKey, getNeighbors } from './HexUtils.ts';
 import {
   TileType,
   TILE_CONFIGS,
 } from '../data/tiles.ts';
 import { MAP_RADIUS, HEX_SIZE } from '../constants.ts';
 import { fbm } from './Noise.ts';
+import { MapRenderer } from './MapRenderer.ts';
+import type { TileData } from './types.ts';
 
-export interface TileData {
-  q: number;
-  r: number;
-  tileType: TileType;
-  noiseValue: number;
-  erosionProgress: number;
-  erosionRate: number;
-  buildingId: string | null;
-  graphics: Phaser.GameObjects.Graphics;
-}
+export type { TileData } from './types.ts';
 
 const NOISE_SCALE = 0.07;
 const NOISE_OCTAVES = 4;
 
-// Stretch the noise input to create directional features (peninsulas)
 const STRETCH_R = 1.6;
 
-// Percentile thresholds for terrain assignment (land tiles only)
 const ROCK_PCT = 0.10;
-const FOREST_PCT = 0.30; // cumulative: 10% rock, 20% forest, 70% grass
+const FOREST_PCT = 0.30;
 
 export class GameMap {
   tiles: Map<string, TileData> = new Map();
-  scene: Phaser.Scene;
-  container: Phaser.GameObjects.Container;
+  renderer: MapRenderer;
   onTileSelect: ((info: string | null) => void) | null = null;
 
-  private selectedQ: number | null = null;
-  private selectedR: number | null = null;
-  private highlightGfx: Phaser.GameObjects.Graphics | null = null;
-
   constructor(scene: Phaser.Scene) {
-    this.scene = scene;
-    this.container = scene.add.container(0, 0);
+    this.renderer = new MapRenderer(scene, () => this.tiles);
+    this.renderer.onTileClick = (q, r) => this.handleTileClick(q, r);
+
     this.generate();
-    this.render();
+    this.renderer.render();
   }
 
   generate(): void {
@@ -50,7 +37,6 @@ export class GameMap {
 
     const landTiles: { q: number; r: number; noise: number }[] = [];
 
-    // Pass 1a: compute noise, determine land vs water, collect land tiles
     for (let q = -MAP_RADIUS; q <= MAP_RADIUS; q++) {
       const rMin = Math.max(-MAP_RADIUS, -q - MAP_RADIUS);
       const rMax = Math.min(MAP_RADIUS, -q + MAP_RADIUS);
@@ -87,8 +73,7 @@ export class GameMap {
       }
     }
 
-    // Pass 1b: assign terrain by percentile (ensures consistent proportions per map)
-    landTiles.sort((a, b) => b.noise - a.noise); // highest noise first
+    landTiles.sort((a, b) => b.noise - a.noise);
     for (let i = 0; i < landTiles.length; i++) {
       const pct = i / landTiles.length;
       const tile = this.tiles.get(hexKey(landTiles[i].q, landTiles[i].r))!;
@@ -99,7 +84,6 @@ export class GameMap {
       }
     }
 
-    // Pass 2: refine — shallow water and beaches
     for (const [, tile] of this.tiles) {
       if (tile.tileType === TileType.WATER) {
         if (this.getLandNeighbors(tile.q, tile.r).length > 0) {
@@ -144,92 +128,14 @@ export class GameMap {
     return result;
   }
 
-  private render(): void {
-    const hexBorder = 0x333333;
-    const hexBorderAlpha = 0.4;
-
-    for (const [, tile] of this.tiles) {
-      const gfx = this.scene.add.graphics();
-      this.drawHex(gfx, tile.q, tile.r, tile.tileType, hexBorder, hexBorderAlpha);
-      const { x, y } = this.axialToWorld(tile.q, tile.r);
-      gfx.setInteractive(
-        new Phaser.Geom.Polygon(
-          getHexVertices(x, y, HEX_SIZE - 1).flatMap((v) => [v.x, v.y]),
-        ),
-        Phaser.Geom.Polygon.Contains,
-      );
-      gfx.on('pointerover', () => {
-        gfx.setAlpha(0.8);
-      });
-      gfx.on('pointerout', () => {
-        gfx.setAlpha(1);
-      });
-      gfx.on('pointerdown', () => {
-        this.onTileClick(tile.q, tile.r);
-      });
-      tile.graphics = gfx;
-      this.container.add(gfx);
-    }
-  }
-
-  private drawHex(
-    gfx: Phaser.GameObjects.Graphics,
-    q: number,
-    r: number,
-    tileType: TileType,
-    borderColor: number,
-    borderAlpha: number,
-  ): void {
-    const config = TILE_CONFIGS[tileType];
-    const { x, y } = this.axialToWorld(q, r);
-    const vertices = getHexVertices(x, y, HEX_SIZE);
-
-    gfx.clear();
-    gfx.fillStyle(config.color, 1);
-    gfx.beginPath();
-    gfx.moveTo(vertices[0].x, vertices[0].y);
-    for (let i = 1; i < 6; i++) {
-      gfx.lineTo(vertices[i].x, vertices[i].y);
-    }
-    gfx.closePath();
-    gfx.fillPath();
-
-    gfx.lineStyle(1, borderColor, borderAlpha);
-    gfx.beginPath();
-    gfx.moveTo(vertices[0].x, vertices[0].y);
-    for (let i = 1; i < 6; i++) {
-      gfx.lineTo(vertices[i].x, vertices[i].y);
-    }
-    gfx.closePath();
-    gfx.strokePath();
-  }
-
   axialToWorld(q: number, r: number): { x: number; y: number } {
-    const x = HEX_SIZE * (Math.sqrt(3) * q + (Math.sqrt(3) / 2) * r);
-    const y = HEX_SIZE * ((3 / 2) * r);
-    return { x, y };
+    return this.renderer.axialToWorld(q, r);
   }
 
   refreshTile(q: number, r: number): void {
-    const key = hexKey(q, r);
-    const tile = this.tiles.get(key);
+    const tile = this.tiles.get(hexKey(q, r));
     if (!tile) return;
-
-    const hexBorder = tile.erosionProgress > 0 ? 0xff4444 : 0x333333;
-    const hexBorderAlpha = tile.erosionProgress > 0 ? 0.8 : 0.4;
-    this.drawHex(tile.graphics, q, r, tile.tileType, hexBorder, hexBorderAlpha);
-
-    if (tile.erosionProgress > 0) {
-      const pct = tile.erosionProgress / 100;
-      tile.graphics.fillStyle(0xff0000, pct * 0.3);
-      const { x, y } = this.axialToWorld(q, r);
-      const vertices = getHexVertices(x, y, HEX_SIZE);
-      tile.graphics.beginPath();
-      tile.graphics.moveTo(vertices[0].x, vertices[0].y);
-      for (let i = 1; i < 6; i++) tile.graphics.lineTo(vertices[i].x, vertices[i].y);
-      tile.graphics.closePath();
-      tile.graphics.fillPath();
-    }
+    this.renderer.refreshTile(tile);
   }
 
   getWaterNeighbors(q: number, r: number): TileData[] {
@@ -252,14 +158,14 @@ export class GameMap {
     return this.getWaterNeighbors(q, r).length > 0;
   }
 
-  private onTileClick(q: number, r: number): void {
-    if (this.selectedQ === q && this.selectedR === r) {
-      this.deselectTile();
+  private handleTileClick(q: number, r: number): void {
+    if (this.renderer.isSelected(q, r)) {
+      this.renderer.deselectTile();
       if (this.onTileSelect) this.onTileSelect(null);
       return;
     }
 
-    this.selectTile(q, r);
+    this.renderer.selectTile(q, r);
     const info = this.buildTileInfo(q, r);
     // eslint-disable-next-line no-console
     console.log(info);
@@ -281,37 +187,9 @@ export class GameMap {
   }
 
   getSelectedTileInfo(): string | null {
-    if (this.selectedQ === null || this.selectedR === null) return null;
-    return this.buildTileInfo(this.selectedQ, this.selectedR);
-  }
-
-  private selectTile(q: number, r: number): void {
-    this.deselectTile();
-
-    const { x, y } = this.axialToWorld(q, r);
-    const vertices = getHexVertices(x, y, HEX_SIZE - 1);
-
-    const gfx = this.scene.add.graphics();
-    gfx.lineStyle(2, 0xffdd44, 1);
-    gfx.beginPath();
-    gfx.moveTo(vertices[0].x, vertices[0].y);
-    for (let i = 1; i < 6; i++) gfx.lineTo(vertices[i].x, vertices[i].y);
-    gfx.closePath();
-    gfx.strokePath();
-
-    this.container.add(gfx);
-    this.highlightGfx = gfx;
-    this.selectedQ = q;
-    this.selectedR = r;
-  }
-
-  private deselectTile(): void {
-    if (this.highlightGfx) {
-      this.highlightGfx.destroy();
-      this.highlightGfx = null;
-    }
-    this.selectedQ = null;
-    this.selectedR = null;
+    const coords = this.renderer.getSelectedCoords();
+    if (!coords) return null;
+    return this.buildTileInfo(coords.q, coords.r);
   }
 
   centerPosition(): { x: number; y: number } {
@@ -319,11 +197,12 @@ export class GameMap {
   }
 
   worldPixelBounds(): { x: number; y: number; width: number; height: number } {
+    const toWorld = (q: number, r: number) => this.axialToWorld(q, r);
     const corners = [
-      this.axialToWorld(-MAP_RADIUS, 0),
-      this.axialToWorld(MAP_RADIUS, 0),
-      this.axialToWorld(0, -MAP_RADIUS),
-      this.axialToWorld(0, MAP_RADIUS),
+      toWorld(-MAP_RADIUS, 0),
+      toWorld(MAP_RADIUS, 0),
+      toWorld(0, -MAP_RADIUS),
+      toWorld(0, MAP_RADIUS),
     ];
     const xs = corners.map((c) => c.x);
     const ys = corners.map((c) => c.y);
