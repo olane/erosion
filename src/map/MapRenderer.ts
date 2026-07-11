@@ -9,6 +9,7 @@ import type { TileData } from './types.ts';
 export class MapRenderer {
   container: Phaser.GameObjects.Container;
   onTileClick: ((q: number, r: number) => void) | null = null;
+  onTileHover: ((q: number, r: number) => void) | null = null;
 
   private scene: Phaser.Scene;
   private getTiles: () => Map<string, TileData>;
@@ -53,6 +54,7 @@ export class MapRenderer {
         Phaser.Geom.Polygon.Contains,
       );
       gfx.on('pointerover', () => {
+        if (this.onTileHover) this.onTileHover(tile.q, tile.r);
         if (this.canBuildAt) {
           const valid = this.canBuildAt(tile.q, tile.r);
           if (valid !== null) {

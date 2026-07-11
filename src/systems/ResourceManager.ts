@@ -22,7 +22,7 @@ export class ResourceManager implements ResourceState {
   private popGrowthTimer: number = 0;
   private popDeclineTimer: number = 0;
   private static readonly POP_INTERVAL = 2;
-  private prevPop: number = 5;
+  popProgress: number = 0;
 
   addFood(amount: number): number {
     const space = this.foodCap - this.food;
@@ -73,26 +73,30 @@ export class ResourceManager implements ResourceState {
   }
 
   eat(): void {
-    this.prevPop = this.population;
+    const prevPop = this.population;
     const required = this.population;
     if (this.food >= required) {
       this.food -= required;
       this.popGrowthTimer += 1;
       this.popDeclineTimer = 0;
+      this.popProgress = this.popGrowthTimer / ResourceManager.POP_INTERVAL;
       if (this.popGrowthTimer >= ResourceManager.POP_INTERVAL && this.population < this.popCap) {
         this.popGrowthTimer = 0;
+        this.popProgress = 0;
         this.population += 1;
       }
     } else {
       this.food = 0;
       this.popGrowthTimer = 0;
       this.popDeclineTimer += 1;
+      this.popProgress = -this.popDeclineTimer / ResourceManager.POP_INTERVAL;
       if (this.popDeclineTimer >= ResourceManager.POP_INTERVAL && this.population > 0) {
         this.popDeclineTimer = 0;
+        this.popProgress = 0;
         this.population -= 1;
       }
     }
-    if (this.prevPop !== this.population && this.onChanged) {
+    if (prevPop !== this.population && this.onChanged) {
       this.onChanged();
     }
   }

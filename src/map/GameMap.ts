@@ -34,6 +34,7 @@ export class GameMap {
       (q, r) => this.canBuildAt(q, r),
     );
     this.renderer.onTileClick = (q, r) => this.handleTileClick(q, r);
+    this.renderer.onTileHover = (q, r) => this.handleTileHover(q, r);
 
     let attempts = 0;
     let candidates: TileData[] = [];
@@ -97,6 +98,50 @@ export class GameMap {
     this.renderer.selectTile(q, r);
     const info = this.buildTileInfo(q, r);
     if (this.onTileSelect) this.onTileSelect(info);
+  }
+
+  private handleTileHover(q: number, r: number): void {
+    if (!this.buildMode || this.selectedBuildingType === null) return;
+    const info = this.buildPreviewInfo(q, r);
+    if (this.onTileSelect) this.onTileSelect(info);
+  }
+
+  private buildPreviewInfo(q: number, r: number): string {
+    if (this.selectedBuildingType === null) return '';
+    const tile = this.tiles.get(hexKey(q, r));
+    if (!tile) return '';
+    const config = BUILDING_CONFIGS[this.selectedBuildingType];
+    const blockReason = this.buildBlockReason(q, r);
+    if (blockReason) {
+      return `Cannot place ${config.name}: ${blockReason}`;
+    }
+    const yields = getBuildingYields(this.selectedBuildingType, tile.tileType);
+    const parts: string[] = [];
+    if (yields.food) parts.push(`Food +${yields.food}`);
+    if (yields.materials) parts.push(`Mat +${yields.materials}`);
+    if (yields.science) parts.push(`Sci +${yields.science}`);
+    const yieldStr = parts.length > 0 ? parts.join(', ') : 'no yield';
+    const costStr = config.cost > 0 ? `Cost: ${config.cost} mat` : '';
+    return `${config.name} — ${yieldStr}${costStr ? ` | ${costStr}` : ''}`;
+  }
+
+  private buildBlockReason(q: number, r: number): string | null {
+    if (this.selectedBuildingType === null) return null;
+    const tile = this.tiles.get(hexKey(q, r));
+    if (!tile) return 'out of bounds';
+    const config = BUILDING_CONFIGS[this.selectedBuildingType];
+
+    if (!TILE_CONFIGS[tile.tileType].buildable) return 'tile not buildable';
+    if (!BUILDING_CONFIGS[this.selectedBuildingType].allowedTiles.includes(tile.tileType)) {
+      return `requires ${config.allowedTiles.map((t) => TILE_CONFIGS[t].name).join(' or ')}`;
+    }
+    if (tile.buildingId !== null) return 'already occupied';
+    if (!this.hasAdjacentBuilding(q, r)) return 'no adjacent building';
+    if (config.requiresCoastal && !this.isCoastal(q, r)) return 'must be coastal';
+    if (config.cost > 0 && this.canAfford && !this.canAfford(config.cost)) {
+      return `need ${config.cost} materials`;
+    }
+    return null;
   }
 
   private tryPlaceBuilding(q: number, r: number): void {
