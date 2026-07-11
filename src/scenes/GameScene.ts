@@ -40,7 +40,7 @@ export class GameScene extends Phaser.Scene {
       this.map.buildingManager,
       () => this.map.tiles,
     );
-    this.ui = new GameUI(this.gameTime, this.tech);
+    this.ui = new GameUI(this.gameTime, this.resources, this.tech);
 
     this.map.onTileSelect = (info: string | null) => {
       this.ui.showTileInfo(info);

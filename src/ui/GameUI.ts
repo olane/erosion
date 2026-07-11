@@ -1,28 +1,36 @@
 import type { TimeSystem } from '../systems/TimeSystem.ts';
 import { BuildingType, BUILDING_CONFIGS } from '../data/buildings.ts';
+import { TECH_CONFIGS } from '../data/tech.ts';
 import type { TechManager } from '../systems/TechManager.ts';
+import type { ResourceManager } from '../systems/ResourceManager.ts';
 
 export class GameUI {
   private time: TimeSystem;
+  private resources: ResourceManager | null;
+  private tech: TechManager | null;
   private container: HTMLDivElement;
   private timeEl: HTMLSpanElement;
   private speedEl: HTMLSpanElement;
   private pauseEl: HTMLSpanElement;
-  private infoEl: HTMLSpanElement;
-  private tileInfoEl: HTMLSpanElement;
+  private foodEl: HTMLSpanElement;
+  private matEl: HTMLSpanElement;
+  private scienceEl: HTMLSpanElement;
+  private popEl: HTMLSpanElement;
   private buildBtnEl: HTMLSpanElement;
   private buildStatusEl: HTMLSpanElement;
+  private techEl: HTMLSpanElement;
+  private infoEl: HTMLSpanElement;
+  private tileInfoEl: HTMLSpanElement;
 
   onBuildSelect: ((type: BuildingType) => void) | null = null;
   onCancelBuild: (() => void) | null = null;
-  onTechResearch: ((techIndex: number) => void) | null = null;
 
-  private tech: TechManager | null = null;
   private buildMode: boolean = false;
   private activeBuildingType: BuildingType | null = null;
 
-  constructor(time: TimeSystem, tech?: TechManager) {
+  constructor(time: TimeSystem, resources?: ResourceManager, tech?: TechManager) {
     this.time = time;
+    this.resources = resources ?? null;
     this.tech = tech ?? null;
 
     this.container = this.buildDOM();
@@ -31,10 +39,15 @@ export class GameUI {
     this.timeEl = this.el('time');
     this.speedEl = this.el('speed');
     this.pauseEl = this.el('pause');
-    this.infoEl = this.el('info');
-    this.tileInfoEl = this.el('tile-info');
+    this.foodEl = this.el('food');
+    this.matEl = this.el('mat');
+    this.scienceEl = this.el('science');
+    this.popEl = this.el('pop');
     this.buildBtnEl = this.el('build-btn');
     this.buildStatusEl = this.el('build-status');
+    this.techEl = this.el('tech');
+    this.infoEl = this.el('info');
+    this.tileInfoEl = this.el('tile-info');
 
     this.bindEvents();
     this.updateDisplay();
@@ -65,8 +78,15 @@ export class GameUI {
       wrap(span('time')),
       wrap(span('speed', 'clickable')),
       wrap(span('pause', 'clickable')),
+      document.createElement('hr'),
+      wrap(span('food')),
+      wrap(span('mat')),
+      wrap(span('science')),
+      wrap(span('pop')),
+      document.createElement('hr'),
       wrap(span('build-btn', 'clickable')),
       wrap(span('build-status')),
+      wrap(span('tech')),
     ]));
     root.appendChild(div('hud-right', [
       wrap(span('info')),
@@ -136,20 +156,40 @@ export class GameUI {
     this.timeEl.textContent = `Day ${days + 1}`;
 
     const speedLabel = this.time.speed === 0 ? 'Paused' : `${this.time.speed}x`;
-    this.speedEl.textContent = `Speed: [${speedLabel}] (click or Space)`;
+    this.speedEl.textContent = `Speed: [${speedLabel}] (Space)`;
 
     this.pauseEl.textContent = this.time.isPaused ? '▶ Resume' : '⏸ Pause';
-    this.infoEl.textContent = 'WASD/arrows to pan  |  Scroll to zoom  |  Middle-drag to pan';
+
+    if (this.resources) {
+      const r = this.resources;
+      this.foodEl.textContent = `Food: ${Math.floor(r.food)}/${r.foodCap}`;
+      this.matEl.textContent = `Mat:  ${Math.floor(r.materials)}/${r.matCap}`;
+      this.scienceEl.textContent = `Sci:  ${Math.floor(r.science)}`;
+      this.popEl.textContent = `Pop:  ${r.population}/${r.popCap}`;
+    }
 
     if (this.buildMode && this.activeBuildingType !== null) {
       const config = BUILDING_CONFIGS[this.activeBuildingType];
-      const costStr = config.cost > 0 ? `  Cost: ${config.cost} mat` : '';
-      const popStr = config.popReq > 0 ? `  Pop: ${config.popReq}` : '';
-      this.buildBtnEl.textContent = `Bldg: [${config.name}] (click to switch)`;
-      this.buildStatusEl.textContent = `Click tile to place${costStr}${popStr}  |  Esc to cancel`;
+      const costStr = config.cost > 0 ? `Cost: ${config.cost} mat` : 'Free';
+      const popStr = config.popReq > 0 ? ` | Req: ${config.popReq} pop` : '';
+      this.buildBtnEl.textContent = `Bldg: [${config.name}]`;
+      this.buildStatusEl.textContent = `${costStr}${popStr} | Click tile to place | Esc to cancel`;
     } else {
-      this.buildBtnEl.textContent = 'Build: [Click to start]';
+      this.buildBtnEl.textContent = 'Build: [B] (click to start)';
       this.buildStatusEl.textContent = '';
     }
+
+    this.techEl.textContent = this.buildTechText();
+
+    this.infoEl.textContent = 'WASD/arrows pan  |  Scroll zoom  |  T research';
+  }
+
+  private buildTechText(): string {
+    if (!this.tech) return '';
+    const available = this.tech.getAvailableNodes();
+    if (available.length === 0) return 'All tech researched';
+    const node = available[0];
+    const config = TECH_CONFIGS[node];
+    return `Tech: [${config.name} ${config.cost} sci] (T to research) | ${available.length} available`;
   }
 }
