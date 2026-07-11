@@ -83,7 +83,7 @@ export class ErosionSystem {
 
       if (tile.erosionProgress >= 100) {
         const next = EROSION_TRANSITION[tile.tileType];
-        if (next !== undefined) {
+        if (next !== null) {
           erodingNow.push({ q: tile.q, r: tile.r, tileType: next });
         }
       }

@@ -84,7 +84,9 @@ export const TILE_CONFIGS: Record<TileType, TileTypeConfig> = {
   },
 };
 
-export const EROSION_TRANSITION: Partial<Record<TileType, TileType>> = {
+export const EROSION_TRANSITION: Record<TileType, TileType | null> = {
+  [TileType.WATER]: null,
+  [TileType.SHALLOW_WATER]: null,
   [TileType.ROCK]: TileType.RUBBLE,
   [TileType.FOREST]: TileType.GRASS,
   [TileType.GRASS]: TileType.BEACH,
