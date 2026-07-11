@@ -14,6 +14,7 @@ export type { ResourceState, IResourceProvider } from './systems/ResourceManager
 export { ProductionSystem } from './systems/ProductionSystem.ts';
 export { TechManager } from './systems/TechManager.ts';
 export type { NextTechInfo } from './systems/TechManager.ts';
+export { BuildController } from './systems/BuildController.ts';
 export { CameraController } from './systems/CameraController.ts';
 export { GameUI } from './ui/GameUI.ts';
 export * from './constants.ts';

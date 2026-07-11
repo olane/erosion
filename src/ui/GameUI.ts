@@ -1,15 +1,17 @@
 import type { TimeSystem } from '../systems/TimeSystem.ts';
-import { BuildingType, BUILDING_CONFIGS } from '../data/buildings.ts';
+import { BUILDING_CONFIGS } from '../data/buildings.ts';
 import { SECONDS_PER_DAY } from '../constants.ts';
 import type { TechManager } from '../systems/TechManager.ts';
 import type { ResourceManager } from '../systems/ResourceManager.ts';
 import type { ProductionSystem } from '../systems/ProductionSystem.ts';
+import type { BuildController } from '../systems/BuildController.ts';
 
 export class GameUI {
   private time: TimeSystem;
   private resources: ResourceManager | null;
   private production: ProductionSystem | null;
   private tech: TechManager | null;
+  private buildCtrl: BuildController | null;
   private container: HTMLDivElement;
   private timeEl: HTMLSpanElement;
   private speedEl: HTMLSpanElement;
@@ -24,22 +26,18 @@ export class GameUI {
   private infoEl: HTMLSpanElement;
   private tileInfoEl: HTMLSpanElement;
 
-  onBuildSelect: ((type: BuildingType) => void) | null = null;
-  onCancelBuild: (() => void) | null = null;
-
-  private buildMode: boolean = false;
-  private activeBuildingType: BuildingType | null = null;
-
   constructor(
     time: TimeSystem,
     resources?: ResourceManager,
     tech?: TechManager,
     production?: ProductionSystem,
+    buildCtrl?: BuildController,
   ) {
     this.time = time;
     this.resources = resources ?? null;
     this.tech = tech ?? null;
     this.production = production ?? null;
+    this.buildCtrl = buildCtrl ?? null;
 
     this.container = this.buildDOM();
     document.getElementById('game-container')!.appendChild(this.container);
@@ -115,39 +113,11 @@ export class GameUI {
       this.time.togglePause();
       this.updateDisplay();
     });
-    this.buildBtnEl.addEventListener('click', () => this.toggleBuild());
-  }
-
-  toggleBuild(): void {
-    const availableTypes = this.getAvailableTypes();
-    if (availableTypes.length === 0) return;
-
-    if (this.buildMode && this.activeBuildingType !== null) {
-      const currentIdx = availableTypes.indexOf(this.activeBuildingType);
-      const nextType = availableTypes[(currentIdx + 1) % availableTypes.length];
-      this.activeBuildingType = nextType;
-      if (this.onBuildSelect) this.onBuildSelect(nextType);
-    } else {
-      this.buildMode = true;
-      this.activeBuildingType = availableTypes[0];
-      if (this.onBuildSelect) this.onBuildSelect(availableTypes[0]);
-    }
-    this.updateDisplay();
-  }
-
-  private getAvailableTypes(): BuildingType[] {
-    const all = Object.values(BuildingType).filter(
-      (v): v is BuildingType => typeof v === 'number' && v !== BuildingType.TOWN_HALL,
-    );
-    if (!this.tech) return all;
-    return all.filter((t) => this.tech!.isBuildingAvailable(t));
-  }
-
-  cancelBuild(): void {
-    this.buildMode = false;
-    this.activeBuildingType = null;
-    if (this.onCancelBuild) this.onCancelBuild();
-    this.updateDisplay();
+    this.buildBtnEl.addEventListener('click', () => {
+      if (this.buildCtrl) {
+        this.buildCtrl.toggleOrCycle();
+      }
+    });
   }
 
   showTileInfo(text: string | null): void {
@@ -182,8 +152,8 @@ export class GameUI {
       this.popEl.textContent = `Pop:  ${r.population}/${r.popCap}${jobs}`;
     }
 
-    if (this.buildMode && this.activeBuildingType !== null) {
-      const config = BUILDING_CONFIGS[this.activeBuildingType];
+    if (this.buildCtrl && this.buildCtrl.buildMode && this.buildCtrl.selectedType !== null) {
+      const config = BUILDING_CONFIGS[this.buildCtrl.selectedType];
       const costStr = config.cost > 0 ? `Cost: ${config.cost} mat` : 'Free';
       const popStr = config.popReq > 0 ? ` | Req: ${config.popReq} pop` : '';
       this.buildBtnEl.textContent = `Bldg: [${config.name}]`;

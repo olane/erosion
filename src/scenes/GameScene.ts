@@ -6,6 +6,8 @@ import { ResourceManager } from '../systems/ResourceManager.ts';
 import { ProductionSystem } from '../systems/ProductionSystem.ts';
 import { TechManager } from '../systems/TechManager.ts';
 import { TechNode } from '../data/tech.ts';
+import { BuildController } from '../systems/BuildController.ts';
+import { BuildingType } from '../data/buildings.ts';
 import { GameUI } from '../ui/GameUI.ts';
 import { CameraController } from '../systems/CameraController.ts';
 
@@ -42,29 +44,6 @@ export class GameScene extends Phaser.Scene {
       this.map.buildingManager,
       () => this.map.tiles,
     );
-    this.ui = new GameUI(this.gameTime, this.resources, this.tech, this.production);
-
-    this.map.onTileInspect = (info) => {
-      this.ui.showTileInfo(info);
-    };
-    this.map.onBuildPreview = (info) => {
-      this.ui.showTileInfo(info);
-    };
-
-    this.ui.onBuildSelect = (type) => {
-      this.map.enterBuildMode(type);
-    };
-    this.ui.onCancelBuild = () => {
-      this.map.exitBuildMode();
-    };
-
-    this.map.onBuildingRemoved = () => {
-      this.production.recalculateCaps();
-    };
-    this.map.onBuildPlaced = () => {
-      this.ui.cancelBuild();
-      this.production.recalculateCaps();
-    };
 
     this.map.resourceProvider = {
       canAffordMaterials: (amount: number) => this.resources.materials >= amount,
@@ -72,17 +51,56 @@ export class GameScene extends Phaser.Scene {
       getAvailablePopulation: () => this.resources.population - this.production.totalPopReq,
     };
 
+    const getAvailableTypes = (): BuildingType[] => {
+      const all = Object.values(BuildingType).filter(
+        (v): v is BuildingType => typeof v === 'number' && v !== BuildingType.TOWN_HALL,
+      );
+      return all.filter((t) => this.tech.isBuildingAvailable(t));
+    };
+
+    const buildCtrl = new BuildController(
+      () => this.map.tiles,
+      this.map.buildingManager,
+      this.map.resourceProvider,
+      (q, r) => this.map.hasAdjacentBuilding(q, r),
+      (q, r) => this.map.isCoastal(q, r),
+      getAvailableTypes,
+      (q, r) => this.map.refreshTile(q, r),
+    );
+
+    this.map.buildController = buildCtrl;
+
+    buildCtrl.onBuildPlaced = () => {
+      this.production.recalculateCaps();
+    };
+    buildCtrl.onBuildPreview = (info) => {
+      this.ui.showTileInfo(info);
+    };
+    buildCtrl.onChanged = () => {
+      this.ui.update();
+    };
+
+    this.ui = new GameUI(this.gameTime, this.resources, this.tech, this.production, buildCtrl);
+
+    this.map.onTileInspect = (info) => {
+      this.ui.showTileInfo(info);
+    };
+
+    this.map.onBuildingRemoved = () => {
+      this.production.recalculateCaps();
+    };
+
     this.camera = new CameraController(this);
 
     this.input.keyboard!.on('keydown-ESC', () => {
-      if (this.map.buildMode) {
-        this.map.exitBuildMode();
-        this.ui.cancelBuild();
+      if (buildCtrl.buildMode) {
+        buildCtrl.cancel();
+        this.map.renderer.deselectTile();
       }
     });
 
     this.input.keyboard!.on('keydown-B', () => {
-      this.ui.toggleBuild();
+      buildCtrl.toggleOrCycle();
     });
 
     this.input.keyboard!.on('keydown-T', () => {
