@@ -35,8 +35,14 @@ export class GameMap {
     );
     this.renderer.onTileClick = (q, r) => this.handleTileClick(q, r);
 
-    this.tiles = new MapGenerator().generate();
+    let attempts = 0;
+    do {
+      this.tiles = new MapGenerator().generate();
+      attempts++;
+    } while (!this.canPlaceInitialTownHall() && attempts < 100);
+
     this.renderer.render();
+    this.placeInitialTownHall();
   }
 
   axialToWorld(q: number, r: number): { x: number; y: number } {
@@ -141,24 +147,36 @@ export class GameMap {
     return true;
   }
 
-  // Pick a random inland tile that neighbors a coastal tile and is within 2 hexes of a Forest.
-  placeInitialTownHall(): void {
-    const hasForestNearby = (q: number, r: number): boolean => {
-      for (const [, t] of this.tiles) {
-        if (t.tileType === TileType.FOREST && hexDistance({ q, r }, { q: t.q, r: t.r }) <= 2) {
-          return true;
-        }
+  private hasForestNearby(q: number, r: number): boolean {
+    for (const [, t] of this.tiles) {
+      if (t.tileType === TileType.FOREST && hexDistance({ q, r }, { q: t.q, r: t.r }) <= 2) {
+        return true;
       }
-      return false;
-    };
+    }
+    return false;
+  }
 
+  private canPlaceInitialTownHall(): boolean {
+    for (const [, tile] of this.tiles) {
+      if (!this.buildingManager.canPlace(BuildingType.TOWN_HALL, tile)) continue;
+      if (this.isCoastal(tile.q, tile.r)) continue;
+      const neighbors = getNeighbors(tile.q, tile.r);
+      if (!neighbors.some((n) => this.isCoastal(n.q, n.r))) continue;
+      if (!this.hasForestNearby(tile.q, tile.r)) continue;
+      return true;
+    }
+    return false;
+  }
+
+  // Pick a random inland tile that neighbors a coastal tile and is within 2 hexes of a Forest.
+  private placeInitialTownHall(): void {
     const candidates: TileData[] = [];
     for (const [, tile] of this.tiles) {
       if (!this.buildingManager.canPlace(BuildingType.TOWN_HALL, tile)) continue;
       if (this.isCoastal(tile.q, tile.r)) continue;
       const neighbors = getNeighbors(tile.q, tile.r);
       if (!neighbors.some((n) => this.isCoastal(n.q, n.r))) continue;
-      if (!hasForestNearby(tile.q, tile.r)) continue;
+      if (!this.hasForestNearby(tile.q, tile.r)) continue;
       candidates.push(tile);
     }
     if (candidates.length === 0) return;

@@ -7,7 +7,7 @@
 | Resource | Gathered By | Spent On |
 |---|---|---|
 | **Food** | Farms, Fishing Docks, Advanced Farms | Population consumption (1 / person / day) |
-| **Materials** | Quarries, Lumber Camps, Deep Quarries | Building construction costs |
+| **Materials** | Town Hall, Quarries, Lumber Camps, Deep Quarries | Building construction costs |
 | **Science** | Town Hall, Workshop | Unlocking tech tree nodes |
 
 ### Pseudo-Resources
@@ -26,9 +26,9 @@
 1. **Consume food** — 1 food per population. If food < pop, food hits 0 and pop declines.
 2. **Produce resources** — each active building produces its yield (food / materials / science) based on the tile type it occupies. A building is active only if workforce requirements are met.
 3. **Population change** — if food > 0 and pop < housing capacity, pop grows by 1 every ~2 days. If food = 0, pop declines by 1 every ~2 days. If pop = 0, game over (lose condition defined later).
-4. **Check workforce** — if total pop < sum of all building pop requirements, disable buildings until requirements are met. Disable priority: newest building first. Disabled buildings produce nothing.
+4. **Check workforce** — if total pop < sum of all building pop requirements, disable buildings until requirements are met. Disable priority: newest building first. Disabled buildings produce nothing and are rendered greyed out.
 5. **Enforce storage caps** — food and materials above their caps are discarded (overflow lost).
-6. **Erosion tick** — existing erosion system runs every 5 real-time seconds. Buildings on eroded tiles are destroyed. Eroded Town Halls, Houses, and Warehouses reduce population/housing/storage caps accordingly.
+6. **Erosion tick** — existing erosion system runs every 5 real-time seconds. Buildings on eroded tiles are destroyed. Caps recalculate on building loss.
 
 ---
 
@@ -62,18 +62,18 @@ Grass → Sand → Shallow Water → (stops)
 
 | Building | Cost (mat) | Pop Req | Pop Cap | Storage | Produces (per day, by tile type) | Notes |
 |---|---|---|---|---|---|---|
-| **Town Hall** | Free (1 initial) | 0 | 5 | F:100 M:100 | Science: 1 | Anchor building, enables adjacency |
+| **Town Hall** | Free (1 initial) | 0 | 5 | F:100 M:100 | Mat: 1, Sci: 1 | Anchor building, enables adjacency. Spawns within 2 hexes of a Forest. |
 | **Farm** | 10 | 1 | 0 | — | Food: Grass 3, Forest 1, Sand 1 | |
 | **Quarry** | 10 | 1 | 0 | — | Materials: Rock 4, Rubble 3 | |
 | **Lumber Camp** | 10 | 1 | 0 | — | Materials: Forest 3, Grass 1 | |
-| **Fishing Dock** | 15 | 1 | 0 | — | Food: ShallowWater 5, Sand 2 | Must be adjacent to water |
+| **Fishing Dock** | 15 | 1 | 0 | — | Food: Sand 4 | Must be adjacent to water (coastal) |
 | **House** | 15 | 0 | 5 | — | — | |
 
 ### Tier 1 (15 science to unlock each node)
 
 | Building | Cost (mat) | Pop Req | Pop Cap | Storage | Produces (per day, by tile type) | Notes |
 |---|---|---|---|---|---|---|
-| **Sea Wall** | 20 | 1 | 0 | — | — | Must be coastal. Slows erosion on itself and adjacent tiles. |
+| **Sea Wall** | 20 | 1 | 0 | — | — | Must be coastal. Slows erosion on itself and adjacent tiles (0.3x). |
 | **Workshop** | 20 | 2 | 0 | — | Science: 2 | |
 | **Warehouse** | 15 | 1 | 0 | F:+100 M:+100 | — | Stackable |
 
@@ -81,7 +81,7 @@ Grass → Sand → Shallow Water → (stops)
 
 | Building | Cost (mat) | Pop Req | Pop Cap | Storage | Effect |
 |---|---|---|---|---|---|
-| **Lighthouse** | 40 | 2 | 0 | — | Slows erosion on all coastal tiles within radius 3 |
+| **Lighthouse** | 40 | 2 | 0 | — | Slows erosion on all coastal tiles within radius 3 (0.5x) |
 | **Advanced Farm** | 25 | 2 | 0 | — | Food: Grass 5, Forest 2, Sand 2 |
 | **Deep Quarry** | 25 | 2 | 0 | — | Materials: Rock 6, Rubble 4 |
 
@@ -109,7 +109,7 @@ Tier 2 (40 science each, requires any Tier 1 node unlocked):
 - **Requirements**: Each production building has a pop requirement (1–2). These stack.
 - **Growth**: While food > 0 and pop < capacity, gain 1 pop every ~2 game-days.
 - **Decline**: While food = 0, lose 1 pop every ~2 game-days.
-- **Workforce shortfall**: If pop < total building pop requirements, disable the newest building(s) first until requirements are met. Disabled buildings produce nothing. Player sees a warning in the HUD.
+- **Workforce shortfall**: If pop < total building pop requirements, disable the newest building(s) first until requirements are met. Disabled buildings produce nothing and are rendered grey.
 
 ---
 
@@ -122,27 +122,32 @@ Tier 2 (40 science each, requires any Tier 1 node unlocked):
 
 ---
 
-## HUD Additions
+## Starting Resources
 
-- **Resource bar**: current/max food, materials, science.
-- **Population**: current / capacity, shown with a workforce indicator (e.g. "pop 8/15, workforce 6/7" or a red warning if short).
-- **Tech panel**: available tech nodes, their costs, and a button to unlock.
-- **Build panel**: building type cycle (B key), shows cost and pop requirement for each option.
-- **Day counter**: already exists, remains.
+- Food: 20
+- Materials: 25
+- Population: 5
 
 ---
 
-## Implementation Order (rough)
+## HUD
 
-1. Add resource tracking to game state (food, materials, science, pop, caps).
-2. Refactor tile configs — remove `foodYield` / `materialYield`.
-3. Add yield tables to building configs.
-4. Implement daily production/consumption tick (integrate with TimeSystem).
-5. Implement population growth/decline mechanics.
-6. Implement workforce check and building disable logic.
-7. Add new building types and their placement rules.
-8. Add tech tree data and unlock logic.
-9. Add Sea Wall / Lighthouse erosion reduction to ErosionSystem.
-10. Update HUD with resource bar, pop display, tech panel, build costs.
-11. Add Fishing Dock adjacency-to-water requirement.
-12. Balance pass on all numbers.
+- **Day counter**
+- **Speed / pause controls**
+- **Resource bar**: current/max for food, materials, science, with net production rate per day (e.g. `Food: 12/100 (+1)`)
+- **Population**: current / capacity (e.g. `Pop: 5/10`)
+- **Build panel**: B key cycles through available building types, shows cost and pop requirement
+- **Tech panel**: shows next available tech node, cost, and T key shortcut to research
+- **Tile info**: coordinates, tile name, building name, yields, erosion %, coastal/inland, erosion rate
+
+---
+
+## Controls
+
+- **WASD / arrows**: pan camera
+- **Scroll wheel**: zoom
+- **Middle-drag**: pan
+- **B**: toggle/build cycle (cycles through available building types)
+- **T**: research next available tech
+- **Esc**: cancel build mode
+- **Space**: cycle game speed
