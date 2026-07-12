@@ -116,7 +116,7 @@ export class WorldUI {
     const px = x + HEX_SIZE + 6;
     const py = y - h / 2;
 
-    this.button(px, py, w, h, '➕ Build', '#cdeecd', 0x2a4e2a, 0x44aa44, true, () => {
+    this.button(px, py, w, h, '➕ Build', '#ffffff', 0x2a2a4e, 0x6688cc, true, () => {
       if (this.onBuildStart) this.onBuildStart(q, r);
     });
   }

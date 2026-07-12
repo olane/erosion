@@ -158,13 +158,14 @@ export class GameMap {
 
   private handleTileClick(q: number, r: number): void {
     if (this.buildController && this.buildController.buildMode) {
-      // Build mode is locked to one tile; clicking it confirms the placement,
-      // clicking elsewhere is ignored (use the cycler panel or Esc).
+      // Build mode is locked to one tile; clicking it confirms the placement.
       const bt = this.buildController.buildTile;
       if (bt && bt.q === q && bt.r === r) {
         this.buildController.confirm();
+        return;
       }
-      return;
+      // Clicking a different tile dismisses build mode and selects that tile.
+      this.buildController.cancel();
     }
 
     if (this.renderer.isSelected(q, r)) {
