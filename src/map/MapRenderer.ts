@@ -74,6 +74,18 @@ export class MapRenderer {
     }
   }
 
+  // Traces a hexagon outline onto the graphics path. Callers apply
+  // fillPath()/strokePath() afterwards.
+  private traceHex(
+    gfx: Phaser.GameObjects.Graphics,
+    vertices: { x: number; y: number }[],
+  ): void {
+    gfx.beginPath();
+    gfx.moveTo(vertices[0].x, vertices[0].y);
+    for (let i = 1; i < 6; i++) gfx.lineTo(vertices[i].x, vertices[i].y);
+    gfx.closePath();
+  }
+
   private drawHex(
     gfx: Phaser.GameObjects.Graphics,
     q: number,
@@ -89,21 +101,11 @@ export class MapRenderer {
 
     gfx.clear();
     gfx.fillStyle(config.color, 1);
-    gfx.beginPath();
-    gfx.moveTo(vertices[0].x, vertices[0].y);
-    for (let i = 1; i < 6; i++) {
-      gfx.lineTo(vertices[i].x, vertices[i].y);
-    }
-    gfx.closePath();
+    this.traceHex(gfx, vertices);
     gfx.fillPath();
 
     gfx.lineStyle(borderWidth, borderColor, borderAlpha);
-    gfx.beginPath();
-    gfx.moveTo(vertices[0].x, vertices[0].y);
-    for (let i = 1; i < 6; i++) {
-      gfx.lineTo(vertices[i].x, vertices[i].y);
-    }
-    gfx.closePath();
+    this.traceHex(gfx, vertices);
     gfx.strokePath();
   }
 
@@ -129,10 +131,7 @@ export class MapRenderer {
       gfx.fillStyle(0xff0000, pct * 0.3);
       const { x, y } = this.axialToWorld(tile.q, tile.r);
       const vertices = getHexVertices(x, y, HEX_SIZE);
-      gfx.beginPath();
-      gfx.moveTo(vertices[0].x, vertices[0].y);
-      for (let i = 1; i < 6; i++) gfx.lineTo(vertices[i].x, vertices[i].y);
-      gfx.closePath();
+      this.traceHex(gfx, vertices);
       gfx.fillPath();
     }
 
@@ -250,10 +249,7 @@ export class MapRenderer {
 
     g.fillStyle(highlight, 0.22);
     g.lineStyle(2, highlight, 0.7);
-    g.beginPath();
-    g.moveTo(vertices[0].x, vertices[0].y);
-    for (let i = 1; i < 6; i++) g.lineTo(vertices[i].x, vertices[i].y);
-    g.closePath();
+    this.traceHex(g, vertices);
     g.fillPath();
     g.strokePath();
 
@@ -287,10 +283,7 @@ export class MapRenderer {
 
     const gfx = this.scene.add.graphics();
     gfx.lineStyle(2, 0xffdd44, 1);
-    gfx.beginPath();
-    gfx.moveTo(vertices[0].x, vertices[0].y);
-    for (let i = 1; i < 6; i++) gfx.lineTo(vertices[i].x, vertices[i].y);
-    gfx.closePath();
+    this.traceHex(gfx, vertices);
     gfx.strokePath();
 
     this.container.add(gfx);
@@ -313,16 +306,14 @@ export class MapRenderer {
     const vertices = getHexVertices(x, y, HEX_SIZE - 1);
     const color = valid ? 0x44cc44 : 0xcc4444;
 
-    this.container.bringToTop(this.hoverHighlight!);
-    this.hoverHighlight!.clear();
-    this.hoverHighlight!.fillStyle(color, 0.25);
-    this.hoverHighlight!.lineStyle(2, color, 0.6);
-    this.hoverHighlight!.beginPath();
-    this.hoverHighlight!.moveTo(vertices[0].x, vertices[0].y);
-    for (let i = 1; i < 6; i++) this.hoverHighlight!.lineTo(vertices[i].x, vertices[i].y);
-    this.hoverHighlight!.closePath();
-    this.hoverHighlight!.fillPath();
-    this.hoverHighlight!.strokePath();
+    const hl = this.hoverHighlight!;
+    this.container.bringToTop(hl);
+    hl.clear();
+    hl.fillStyle(color, 0.25);
+    hl.lineStyle(2, color, 0.6);
+    this.traceHex(hl, vertices);
+    hl.fillPath();
+    hl.strokePath();
   }
 
   isSelected(q: number, r: number): boolean {
