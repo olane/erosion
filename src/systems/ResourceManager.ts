@@ -20,8 +20,6 @@ export class ResourceManager implements ResourceState {
   foodCap: number = 100;
   matCap: number = 100;
 
-  onChanged: (() => void) | null = null;
-
   negativePopDays: number = 0;
   static readonly NEGATIVE_POP_GRACE_DAYS = 7;
 
@@ -55,12 +53,6 @@ export class ResourceManager implements ResourceState {
     this.population += amount;
   }
 
-  spendFood(amount: number): boolean {
-    if (this.food < amount) return false;
-    this.food -= amount;
-    return true;
-  }
-
   spendMaterials(amount: number): boolean {
     if (this.materials < amount) return false;
     this.materials -= amount;
@@ -70,12 +62,6 @@ export class ResourceManager implements ResourceState {
   spendScience(amount: number): boolean {
     if (this.science < amount) return false;
     this.science -= amount;
-    return true;
-  }
-
-  spendPopulation(amount: number): boolean {
-    if (this.population < amount) return false;
-    this.population -= amount;
     return true;
   }
 
