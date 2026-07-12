@@ -1,7 +1,7 @@
 import Phaser from 'phaser';
 import { hexKey, getNeighbors, hexDistance } from './HexUtils.ts';
 import { TileType, TILE_CONFIGS } from '../data/tiles.ts';
-import { BuildingType, BUILDING_CONFIGS, getBuildingYields } from '../data/buildings.ts';
+import { BuildingType, BUILDING_CONFIGS, getBuildingYields, formatYields } from '../data/buildings.ts';
 import { MAP_RADIUS, HEX_SIZE } from '../constants.ts';
 import { MapRenderer } from './MapRenderer.ts';
 import { MapGenerator } from './MapGenerator.ts';
@@ -180,12 +180,7 @@ export class GameMap {
     const tileName = tile.tileType === TileType.SAND ? (coastal ? 'Beach' : 'Desert') : config.name;
     let yieldStr = '';
     if (building) {
-      const y = getBuildingYields(building.buildingType, tile.tileType);
-      const parts: string[] = [];
-      if (y.food) parts.push(`Food ${y.food > 0 ? '+' : ''}${y.food}`);
-      if (y.materials) parts.push(`Mat ${y.materials > 0 ? '+' : ''}${y.materials}`);
-      if (y.science) parts.push(`Sci ${y.science > 0 ? '+' : ''}${y.science}`);
-      if (y.population) parts.push(`Pop ${y.population > 0 ? '+' : ''}${y.population}`);
+      const parts = formatYields(getBuildingYields(building.buildingType, tile.tileType));
       if (parts.length) yieldStr = ` | ${parts.join(' ')}`;
     }
     const wallStr = tile.seaWalled ? ' | Sea Walled' : '';

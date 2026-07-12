@@ -220,6 +220,20 @@ export function getBuildingYields(buildingType: BuildingType, tileType: TileType
   return base;
 }
 
+// Formats non-zero yields as signed labels, e.g. ['Food +3', 'Pop -1'].
+// Callers join the parts however they need (', ' for summaries, ' ' inline).
+export function formatYields(yields: BuildingYields): string[] {
+  const parts: string[] = [];
+  const add = (label: string, value: number) => {
+    if (value) parts.push(`${label} ${value > 0 ? '+' : ''}${value}`);
+  };
+  add('Food', yields.food);
+  add('Mat', yields.materials);
+  add('Sci', yields.science);
+  add('Pop', yields.population);
+  return parts;
+}
+
 export interface BuildingInstance {
   id: string;
   buildingType: BuildingType;

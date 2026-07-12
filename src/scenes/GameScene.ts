@@ -8,7 +8,7 @@ import { ProductionSystem } from '../systems/ProductionSystem.ts';
 import { TechManager } from '../systems/TechManager.ts';
 import { TechNode } from '../data/tech.ts';
 import { BuildController } from '../systems/BuildController.ts';
-import { BuildingType, BUILDING_CONFIGS, getBuildingYields } from '../data/buildings.ts';
+import { BuildingType, BUILDING_CONFIGS, getBuildingYields, formatYields } from '../data/buildings.ts';
 import { TILE_CONFIGS } from '../data/tiles.ts';
 import { GameUI } from '../ui/GameUI.ts';
 import { CameraController } from '../systems/CameraController.ts';
@@ -237,12 +237,7 @@ export class GameScene extends Phaser.Scene {
   }
 
   private yieldSummary(buildingType: number, tileType: number): string {
-    const y = getBuildingYields(buildingType, tileType);
-    const parts: string[] = [];
-    if (y.food) parts.push(`Food ${y.food > 0 ? '+' : ''}${y.food}`);
-    if (y.materials) parts.push(`Mat ${y.materials > 0 ? '+' : ''}${y.materials}`);
-    if (y.science) parts.push(`Sci ${y.science > 0 ? '+' : ''}${y.science}`);
-    if (y.population) parts.push(`Pop ${y.population > 0 ? '+' : ''}${y.population}`);
+    const parts = formatYields(getBuildingYields(buildingType, tileType));
     return parts.length > 0 ? parts.join(', ') : 'no yield';
   }
 
