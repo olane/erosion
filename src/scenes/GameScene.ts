@@ -37,6 +37,10 @@ export class GameScene extends Phaser.Scene {
   private gameOver = false;
   private buildCtrl!: BuildController;
   private construction!: ConstructionSystem;
+  // Whether the current action is valid, as currently drawn in the cycler panel
+  // (null when no panel is shown). Tracked so we only rebuild the panel when this
+  // flips (e.g. materials accrue), not every frame.
+  private actionIsValid: boolean | null = null;
 
   constructor() {
     super({ key: 'GameScene' });
@@ -189,7 +193,11 @@ export class GameScene extends Phaser.Scene {
     this.erosion.update();
     this.production.update(this.gameTime.elapsed);
 
-    if (!this.map.buildController?.active) {
+    if (this.map.buildController?.active) {
+      // Re-render the cycler if game state has flipped its validity (e.g. we can
+      // now afford it). onChanged only fires on player actions, not resource ticks.
+      if (this.cyclerIsStale()) this.refreshBuildMode();
+    } else {
       const selectedInfo = this.map.getSelectedTileInfo();
       if (selectedInfo !== null) {
         this.ui.showTileInfo(selectedInfo);
@@ -278,6 +286,14 @@ export class GameScene extends Phaser.Scene {
     );
   }
 
+  // Whether the current action's validity has diverged from what the cycler
+  // panel is currently showing (so the panel needs rebuilding).
+  private cyclerIsStale(): boolean {
+    const bt = this.buildCtrl.buildTile;
+    if (!bt) return false;
+    return (this.buildCtrl.canConfirmAt(bt.q, bt.r) === true) !== this.actionIsValid;
+  }
+
   // Session UI: the cycler panel for the locked tile, showing what happens when
   // valid or the reason it can't. Build sessions also render a placement ghost.
   private refreshBuildMode(): void {
@@ -286,6 +302,7 @@ export class GameScene extends Phaser.Scene {
     if (!this.buildCtrl.active || !bt || option === null) {
       this.worldUI.clearBuildUI();
       this.map.renderer.hideGhost();
+      this.actionIsValid = null;
       return;
     }
 
@@ -295,6 +312,7 @@ export class GameScene extends Phaser.Scene {
 
     const valid = this.buildCtrl.canConfirmAt(q, r) === true;
     const blockReason = this.buildCtrl.blockReason(q, r);
+    this.actionIsValid = valid;
 
     if (option.kind === 'build') {
       const config = BUILDING_CONFIGS[option.building];
