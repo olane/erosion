@@ -1,8 +1,15 @@
-import { hexKey, getNeighbors } from './HexUtils.ts';
-import { TileType } from '../data/tiles.ts';
+import { hexKey, getNeighbors, hexDistance } from './HexUtils.ts';
+import { TileType, TILE_CONFIGS } from '../data/tiles.ts';
+import { BuildingType, BUILDING_CONFIGS } from '../data/buildings.ts';
 import { MAP_RADIUS } from '../constants.ts';
 import { fbm } from './Noise.ts';
 import type { TileData } from './types.ts';
+
+export interface GeneratedMap {
+  tiles: Map<string, TileData>;
+  // The chosen Town Hall start tile, or null if no valid site was found.
+  townHall: TileData | null;
+}
 
 const NOISE_SCALE = 0.07;
 const NOISE_OCTAVES = 4;
@@ -12,7 +19,24 @@ const FOREST_PCT = 0.3;
 const INLAND_SAND_PCT = 0.2;
 
 export class MapGenerator {
-  generate(): Map<string, TileData> {
+  // Generates terrain and picks a Town Hall start site, retrying the terrain
+  // until a valid site exists (or a bounded number of attempts is exhausted).
+  generate(): GeneratedMap {
+    let tiles = new Map<string, TileData>();
+    let candidates: TileData[] = [];
+    let attempts = 0;
+    do {
+      tiles = this.generateTiles();
+      candidates = this.findTownHallCandidates(tiles);
+      attempts++;
+    } while (candidates.length === 0 && attempts < 100);
+
+    const townHall =
+      candidates.length > 0 ? candidates[Math.floor(Math.random() * candidates.length)] : null;
+    return { tiles, townHall };
+  }
+
+  private generateTiles(): Map<string, TileData> {
     const tiles = new Map<string, TileData>();
     const landTiles: { q: number; r: number; noise: number }[] = [];
 
@@ -119,5 +143,38 @@ export class MapGenerator {
     }
 
     return tiles;
+  }
+
+  private isCoastal(tiles: Map<string, TileData>, q: number, r: number): boolean {
+    return getNeighbors(q, r).some((n) => {
+      const t = tiles.get(hexKey(n.q, n.r));
+      return t?.tileType === TileType.WATER || t?.tileType === TileType.SHALLOW_WATER;
+    });
+  }
+
+  private hasForestNearby(tiles: Map<string, TileData>, q: number, r: number): boolean {
+    for (const [, t] of tiles) {
+      if (t.tileType === TileType.FOREST && hexDistance({ q, r }, { q: t.q, r: t.r }) <= 2) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  // A good start site is inland but on the coast's doorstep, with forest for
+  // early materials: a buildable Town Hall tile that isn't itself coastal but
+  // borders the sea and has forest within reach.
+  private findTownHallCandidates(tiles: Map<string, TileData>): TileData[] {
+    const allowed = BUILDING_CONFIGS[BuildingType.TOWN_HALL].allowedTiles;
+    const candidates: TileData[] = [];
+    for (const [, tile] of tiles) {
+      if (!TILE_CONFIGS[tile.tileType].buildable) continue;
+      if (!allowed.includes(tile.tileType)) continue;
+      if (this.isCoastal(tiles, tile.q, tile.r)) continue;
+      if (!getNeighbors(tile.q, tile.r).some((n) => this.isCoastal(tiles, n.q, n.r))) continue;
+      if (!this.hasForestNearby(tiles, tile.q, tile.r)) continue;
+      candidates.push(tile);
+    }
+    return candidates;
   }
 }

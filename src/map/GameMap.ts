@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { hexKey, getNeighbors, hexDistance } from './HexUtils.ts';
+import { hexKey, getNeighbors } from './HexUtils.ts';
 import { TileType, TILE_CONFIGS } from '../data/tiles.ts';
 import { BuildingType, BUILDING_CONFIGS, getBuildingYields, formatYields } from '../data/buildings.ts';
 import { MAP_RADIUS, HEX_SIZE } from '../constants.ts';
@@ -33,20 +33,16 @@ export class GameMap {
     );
     this.renderer.onTileClick = (q, r) => this.handleTileClick(q, r);
 
-    let attempts = 0;
-    let candidates: TileData[] = [];
-    do {
-      this.tiles = new MapGenerator().generate();
-      candidates = this.findTownHallCandidates();
-      attempts++;
-    } while (candidates.length === 0 && attempts < 100);
+    const { tiles, townHall } = new MapGenerator().generate();
+    this.tiles = tiles;
 
     this.renderer.render();
 
-    const tile = candidates[Math.floor(Math.random() * candidates.length)];
-    const result = this.buildingManager.placeBuilding(BuildingType.TOWN_HALL, tile);
-    if (result !== null) {
-      this.refreshTile(tile.q, tile.r);
+    if (townHall) {
+      const result = this.buildingManager.placeBuilding(BuildingType.TOWN_HALL, townHall);
+      if (result !== null) {
+        this.refreshTile(townHall.q, townHall.r);
+      }
     }
   }
 
@@ -192,25 +188,4 @@ export class GameMap {
     );
   }
 
-  private hasForestNearby(q: number, r: number): boolean {
-    for (const [, t] of this.tiles) {
-      if (t.tileType === TileType.FOREST && hexDistance({ q, r }, { q: t.q, r: t.r }) <= 2) {
-        return true;
-      }
-    }
-    return false;
-  }
-
-  private findTownHallCandidates(): TileData[] {
-    const candidates: TileData[] = [];
-    for (const [, tile] of this.tiles) {
-      if (!this.buildingManager.canPlace(BuildingType.TOWN_HALL, tile)) continue;
-      if (this.isCoastal(tile.q, tile.r)) continue;
-      const neighbors = getNeighbors(tile.q, tile.r);
-      if (!neighbors.some((n) => this.isCoastal(n.q, n.r))) continue;
-      if (!this.hasForestNearby(tile.q, tile.r)) continue;
-      candidates.push(tile);
-    }
-    return candidates;
-  }
 }
