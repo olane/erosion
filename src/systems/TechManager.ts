@@ -16,10 +16,6 @@ export class TechManager {
     this.resources = resources;
   }
 
-  isResearched(node: TechNode): boolean {
-    return this.researched.has(node);
-  }
-
   isBuildingAvailable(type: BuildingType): boolean {
     if (BUILDING_CONFIGS[type].tier === 0) return true;
     for (const node of this.researched) {
