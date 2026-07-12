@@ -144,15 +144,7 @@ export class GameScene extends Phaser.Scene {
     });
 
     this.input.keyboard!.on('keydown-T', () => {
-      const available = this.tech.getAvailableNodes();
-      if (available.length > 0) {
-        const researched = available[0];
-        this.tech.tryResearch(researched);
-        if (researched === TechNode.COASTAL_ENGINEERING) {
-          this.erosion.seaWallSelfMult = 0.1;
-          this.erosion.seaWallAdjMult = 0.6;
-        }
-      }
+      this.researchNextTech();
     });
 
     this.input.keyboard!.on('keydown-M', () => {
@@ -179,6 +171,22 @@ export class GameScene extends Phaser.Scene {
     }
 
     this.ui.update();
+  }
+
+  private researchNextTech(): void {
+    const available = this.tech.getAvailableNodes();
+    if (available.length === 0) return;
+    const node = available[0];
+    if (!this.tech.tryResearch(node)) return;
+    this.applyTechEffect(node);
+  }
+
+  // Non-building tech effects. Building unlocks are handled by TechManager via
+  // TECH_CONFIGS.unlocks; effects that reach into other systems live here.
+  private applyTechEffect(node: TechNode): void {
+    if (node === TechNode.COASTAL_ENGINEERING) {
+      this.erosion.upgradeSeaWalls();
+    }
   }
 
   // Selection UI (not in build mode): buildings show their yields; empty

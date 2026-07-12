@@ -43,13 +43,20 @@ export class ErosionSystem {
   private config: ErosionConfig;
   private lastCheck: number = 0;
 
-  seaWallSelfMult: number = 0.2;
-  seaWallAdjMult: number = 0.8;
+  private seaWallSelfMult: number = 0.2;
+  private seaWallAdjMult: number = 0.8;
 
   constructor(map: IErosionTarget, time: IClock, config: ErosionConfig = DEFAULT_CONFIG) {
     this.map = map;
     this.time = time;
     this.config = config;
+  }
+
+  // Coastal Engineering tech: makes sea walls markedly more effective, both on
+  // the walled tile itself and its neighbours.
+  upgradeSeaWalls(): void {
+    this.seaWallSelfMult = 0.1;
+    this.seaWallAdjMult = 0.6;
   }
 
   update(): void {
