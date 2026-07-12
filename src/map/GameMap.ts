@@ -32,7 +32,6 @@ export class GameMap {
       (q, r) => this.canBuildAt(q, r),
     );
     this.renderer.onTileClick = (q, r) => this.handleTileClick(q, r);
-    this.renderer.onTileHover = (q, r) => this.handleTileHover(q, r);
 
     let attempts = 0;
     let candidates: TileData[] = [];
@@ -177,21 +176,6 @@ export class GameMap {
     this.renderer.selectTile(q, r);
     const info = this.buildTileInfo(q, r);
     if (this.onTileInspect) this.onTileInspect(info);
-  }
-
-  private handleTileHover(q: number, r: number): void {
-    if (
-      !this.buildController ||
-      !this.buildController.buildMode ||
-      this.buildController.selectedType === null
-    ) {
-      return;
-    }
-    // Only preview the locked build tile; the cycler panel is the source of truth.
-    const bt = this.buildController.buildTile;
-    if (!bt || bt.q !== q || bt.r !== r) return;
-    const info = this.buildController.buildPreviewInfo(q, r);
-    if (this.buildController.onBuildPreview) this.buildController.onBuildPreview(info);
   }
 
   private buildTileInfo(q: number, r: number): string {

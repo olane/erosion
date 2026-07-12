@@ -1,6 +1,6 @@
 import { hexKey } from '../map/HexUtils.ts';
 import { TILE_CONFIGS } from '../data/tiles.ts';
-import { BuildingType, BUILDING_CONFIGS, getBuildingYields } from '../data/buildings.ts';
+import { BuildingType, BUILDING_CONFIGS } from '../data/buildings.ts';
 import type { BuildingManager } from './BuildingManager.ts';
 import type { IResourceProvider } from './ResourceManager.ts';
 import type { TileData } from '../map/types.ts';
@@ -30,7 +30,6 @@ export class BuildController {
 
   onChanged: (() => void) | null = null;
   onBuildPlaced: (() => void) | null = null;
-  onBuildPreview: ((info: string | null) => void) | null = null;
 
   constructor(
     tiles: () => Map<string, TileData>,
@@ -136,30 +135,6 @@ export class BuildController {
       return `need ${config.cost} materials`;
     }
     return null;
-  }
-
-  buildPreviewInfo(q: number, r: number): string {
-    if (this._selectedType === null) return '';
-    const tile = this.tiles().get(hexKey(q, r));
-    if (!tile) return '';
-    const config = BUILDING_CONFIGS[this._selectedType];
-    const blockReason = this.buildBlockReason(q, r);
-    if (blockReason) {
-      return `Cannot place ${config.name}: ${blockReason}`;
-    }
-    if (config.isWall) {
-      const costStr = config.cost > 0 ? `Cost: ${config.cost} mat` : '';
-      return `${config.name} — reduces erosion${costStr ? ` | ${costStr}` : ''}`;
-    }
-    const yields = getBuildingYields(this._selectedType, tile.tileType);
-    const parts: string[] = [];
-    if (yields.food) parts.push(`Food ${yields.food > 0 ? '+' : ''}${yields.food}`);
-    if (yields.materials) parts.push(`Mat ${yields.materials > 0 ? '+' : ''}${yields.materials}`);
-    if (yields.science) parts.push(`Sci ${yields.science > 0 ? '+' : ''}${yields.science}`);
-    if (yields.population) parts.push(`Pop ${yields.population > 0 ? '+' : ''}${yields.population}`);
-    const yieldStr = parts.length > 0 ? parts.join(', ') : 'no yield';
-    const costStr = config.cost > 0 ? `Cost: ${config.cost} mat` : '';
-    return `${config.name} — ${yieldStr}${costStr ? ` | ${costStr}` : ''}`;
   }
 
   placeBuildingAt(q: number, r: number, buildingType: BuildingType): boolean {
