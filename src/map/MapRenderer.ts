@@ -290,8 +290,9 @@ export class MapRenderer {
         this.drawBuildingShape(g, x, y, o.shape, HEX_SIZE * 0.35);
       }
 
+      // Below the tile centre, clear of the yield icons drawn above a building.
       const bx = x - barW / 2;
-      const by = y - HEX_SIZE * 0.65;
+      const by = y + HEX_SIZE * 0.6;
       const p = Math.max(0, Math.min(1, o.progress));
 
       g.fillStyle(0x000000, 0.6);
