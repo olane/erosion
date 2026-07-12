@@ -133,6 +133,33 @@ export class BuildController {
     return `${config.name} — ${yieldStr}${costStr ? ` | ${costStr}` : ''}`;
   }
 
+  placeBuildingAt(q: number, r: number, buildingType: BuildingType): boolean {
+    const tile = this.tiles().get(hexKey(q, r));
+    if (!tile) return false;
+
+    if (!this.hasAdjacentBuilding(q, r)) return false;
+
+    const config = BUILDING_CONFIGS[buildingType];
+    if (!this.buildingManager.canPlace(buildingType, tile)) return false;
+    if (config.isWall && tile.seaWalled) return false;
+    if (config.requiresCoastal && !this.isCoastal(q, r)) return false;
+    if (config.cost > 0 && this.resourceProvider && !this.resourceProvider.canAffordMaterials(config.cost)) return false;
+
+    if (config.cost > 0) {
+      this.resourceProvider!.spendMaterials(config.cost);
+    }
+
+    if (config.isWall) {
+      tile.seaWalled = true;
+    } else {
+      this.buildingManager.placeBuilding(buildingType, tile);
+    }
+
+    this.refreshTile(q, r);
+    if (this.onBuildPlaced) this.onBuildPlaced();
+    return true;
+  }
+
   tryPlaceBuilding(q: number, r: number): void {
     const tile = this.tiles().get(hexKey(q, r));
     if (!tile || this._selectedType === null) return;
