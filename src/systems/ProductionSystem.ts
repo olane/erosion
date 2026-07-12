@@ -16,6 +16,8 @@ export class ProductionSystem {
   scienceRate: number = 0;
   popRate: number = 0;
 
+  onGameOver: (() => void) | null = null;
+
   constructor(
     resources: ResourceManager,
     buildings: BuildingManager,
@@ -73,8 +75,6 @@ export class ProductionSystem {
       this.onGameOver?.();
     }
   }
-
-  onGameOver: (() => void) | null = null;
 
   private computeYields(): {
     food: number;
