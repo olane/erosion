@@ -42,11 +42,3 @@ const game = new Phaser.Game(config);
 window.addEventListener('resize', () => {
   game.scale.resize(window.innerWidth * dpr, window.innerHeight * dpr);
 });
-
-window.addEventListener('keydown', (e) => {
-  if (e.code === 'Space') {
-    e.preventDefault();
-    const gm = game.scene.getScene('GameScene') as GameScene | null;
-    gm?.gameTime.cycleSpeed();
-  }
-});

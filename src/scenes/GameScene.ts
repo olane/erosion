@@ -149,6 +149,13 @@ export class GameScene extends Phaser.Scene {
     this.input.keyboard!.on('keydown-M', () => {
       this.panelManager.showTechTree();
     });
+
+    // Capture Space so it cycles game speed instead of scrolling the page.
+    this.input.keyboard!.addCapture('SPACE');
+    this.input.keyboard!.on('keydown-SPACE', () => {
+      this.gameTime.cycleSpeed();
+      this.ui.update();
+    });
   }
 
   update(_time: number, delta: number): void {
