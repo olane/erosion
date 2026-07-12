@@ -114,8 +114,8 @@ export class GameUI {
       this.updateDisplay();
     });
     this.buildBtnEl.addEventListener('click', () => {
-      if (this.buildCtrl) {
-        this.buildCtrl.toggleOrCycle();
+      if (this.buildCtrl && this.buildCtrl.buildMode) {
+        this.buildCtrl.cycle(1);
       }
     });
   }
@@ -164,9 +164,9 @@ export class GameUI {
       const config = BUILDING_CONFIGS[this.buildCtrl.selectedType];
       const costStr = config.cost > 0 ? `Cost: ${config.cost} mat` : 'Free';
       this.buildBtnEl.textContent = `Bldg: [${config.name}]`;
-      this.buildStatusEl.textContent = `${costStr} | Click tile to place | Esc to cancel`;
+      this.buildStatusEl.textContent = `${costStr} | ◀ ▶ cycle (B) | Enter to build | Esc to cancel`;
     } else {
-      this.buildBtnEl.textContent = 'Build: [B] (click to start)';
+      this.buildBtnEl.textContent = 'Build: select a tile next to a building';
       this.buildStatusEl.textContent = '';
     }
 

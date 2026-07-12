@@ -19,6 +19,7 @@ export class MapRenderer {
   private selectedR: number | null = null;
   private highlightGfx: Phaser.GameObjects.Graphics | null = null;
   private hoverHighlight: Phaser.GameObjects.Graphics | null = null;
+  private ghostGfx: Phaser.GameObjects.Graphics | null = null;
   private tileGraphics: Map<string, Phaser.GameObjects.Graphics> = new Map();
 
   constructor(
@@ -160,57 +161,7 @@ export class MapRenderer {
 
     gfx.fillStyle(fillColor, fillAlpha);
     gfx.lineStyle(borderWidth, borderColor, borderAlpha);
-
-    if (config.iconShape === 'circle') {
-      gfx.beginPath();
-      gfx.arc(x, y, iconSize, 0, Math.PI * 2);
-      gfx.closePath();
-      gfx.fillPath();
-      gfx.strokePath();
-    } else if (config.iconShape === 'triangle') {
-      const h = iconSize * 1.5;
-      const w = iconSize * 1.3;
-      gfx.beginPath();
-      gfx.moveTo(x, y - h * 0.6);
-      gfx.lineTo(x + w, y + h * 0.4);
-      gfx.lineTo(x - w, y + h * 0.4);
-      gfx.closePath();
-      gfx.fillPath();
-      gfx.strokePath();
-    } else if (config.iconShape === 'square') {
-      const s = iconSize * 0.85;
-      gfx.beginPath();
-      gfx.moveTo(x, y - s);
-      gfx.lineTo(x + s, y);
-      gfx.lineTo(x, y + s);
-      gfx.lineTo(x - s, y);
-      gfx.closePath();
-      gfx.fillPath();
-      gfx.strokePath();
-    } else if (config.iconShape === 'diamond') {
-      const s = iconSize * 1.1;
-      gfx.beginPath();
-      gfx.moveTo(x, y - s);
-      gfx.lineTo(x + s * 0.7, y);
-      gfx.lineTo(x, y + s);
-      gfx.lineTo(x - s * 0.7, y);
-      gfx.closePath();
-      gfx.fillPath();
-      gfx.strokePath();
-    } else if (config.iconShape === 'hexagon') {
-      const s = iconSize;
-      gfx.beginPath();
-      for (let i = 0; i < 6; i++) {
-        const angle = (Math.PI / 180) * (60 * i - 30);
-        const vx = x + s * Math.cos(angle);
-        const vy = y + s * Math.sin(angle);
-        if (i === 0) gfx.moveTo(vx, vy);
-        else gfx.lineTo(vx, vy);
-      }
-      gfx.closePath();
-      gfx.fillPath();
-      gfx.strokePath();
-    }
+    this.drawBuildingShape(gfx, x, y, config.iconShape, iconSize);
 
     if (danger) {
       const warnY = y - iconSize - 2;
@@ -226,6 +177,99 @@ export class MapRenderer {
       gfx.fillRect(x - 0.5, warnY, 1, 2);
       gfx.fillRect(x - 0.5, warnY + 4, 1, 1);
     }
+  }
+
+  private drawBuildingShape(
+    gfx: Phaser.GameObjects.Graphics,
+    x: number,
+    y: number,
+    shape: string,
+    iconSize: number,
+  ): void {
+    if (shape === 'circle') {
+      gfx.beginPath();
+      gfx.arc(x, y, iconSize, 0, Math.PI * 2);
+      gfx.closePath();
+      gfx.fillPath();
+      gfx.strokePath();
+    } else if (shape === 'triangle') {
+      const h = iconSize * 1.5;
+      const w = iconSize * 1.3;
+      gfx.beginPath();
+      gfx.moveTo(x, y - h * 0.6);
+      gfx.lineTo(x + w, y + h * 0.4);
+      gfx.lineTo(x - w, y + h * 0.4);
+      gfx.closePath();
+      gfx.fillPath();
+      gfx.strokePath();
+    } else if (shape === 'square') {
+      const s = iconSize * 0.85;
+      gfx.beginPath();
+      gfx.moveTo(x, y - s);
+      gfx.lineTo(x + s, y);
+      gfx.lineTo(x, y + s);
+      gfx.lineTo(x - s, y);
+      gfx.closePath();
+      gfx.fillPath();
+      gfx.strokePath();
+    } else if (shape === 'diamond') {
+      const s = iconSize * 1.1;
+      gfx.beginPath();
+      gfx.moveTo(x, y - s);
+      gfx.lineTo(x + s * 0.7, y);
+      gfx.lineTo(x, y + s);
+      gfx.lineTo(x - s * 0.7, y);
+      gfx.closePath();
+      gfx.fillPath();
+      gfx.strokePath();
+    } else if (shape === 'hexagon') {
+      const s = iconSize;
+      gfx.beginPath();
+      for (let i = 0; i < 6; i++) {
+        const angle = (Math.PI / 180) * (60 * i - 30);
+        const vx = x + s * Math.cos(angle);
+        const vy = y + s * Math.sin(angle);
+        if (i === 0) gfx.moveTo(vx, vy);
+        else gfx.lineTo(vx, vy);
+      }
+      gfx.closePath();
+      gfx.fillPath();
+      gfx.strokePath();
+    }
+  }
+
+  // Renders a translucent preview of a building on a tile, tinted green/red to
+  // signal whether it can be placed there. Used by tile-locked build mode.
+  showGhost(q: number, r: number, shape: string, iconColor: number, valid: boolean): void {
+    if (!this.ghostGfx) {
+      this.ghostGfx = this.scene.add.graphics();
+      this.container.add(this.ghostGfx);
+    }
+    const g = this.ghostGfx;
+    g.clear();
+
+    const { x, y } = this.axialToWorld(q, r);
+    const highlight = valid ? 0x44cc44 : 0xcc4444;
+    const vertices = getHexVertices(x, y, HEX_SIZE - 1);
+
+    g.fillStyle(highlight, 0.22);
+    g.lineStyle(2, highlight, 0.7);
+    g.beginPath();
+    g.moveTo(vertices[0].x, vertices[0].y);
+    for (let i = 1; i < 6; i++) g.lineTo(vertices[i].x, vertices[i].y);
+    g.closePath();
+    g.fillPath();
+    g.strokePath();
+
+    g.fillStyle(valid ? iconColor : 0xcc4444, 0.55);
+    g.lineStyle(1, 0x000000, 0.4);
+    this.drawBuildingShape(g, x, y, shape, HEX_SIZE * 0.35);
+
+    this.container.bringToTop(g);
+  }
+
+  hideGhost(): void {
+    this.ghostGfx?.clear();
   }
 
   private isBuildingDanger(building: BuildingInstance, currentTileType: TileType): boolean {

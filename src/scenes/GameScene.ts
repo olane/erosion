@@ -14,7 +14,7 @@ import { GameUI } from '../ui/GameUI.ts';
 import { CameraController } from '../systems/CameraController.ts';
 import { WorldUI } from '../ui/WorldUI.ts';
 import { PanelManager } from '../ui/PanelManager.ts';
-import type { BuildOption, TileIcon } from '../ui/types.ts';
+import type { TileIcon } from '../ui/types.ts';
 
 export class GameScene extends Phaser.Scene {
   map!: GameMap;
@@ -86,28 +86,24 @@ export class GameScene extends Phaser.Scene {
 
     buildCtrl.onBuildPlaced = () => {
       this.production.recalculateCaps();
-      this.worldUI.hideBuildPalette();
-      this.worldUI.clearTileIcons();
-    };
-    buildCtrl.onBuildPreview = (info) => {
-      this.ui.showTileInfo(info);
     };
     buildCtrl.onChanged = () => {
-      this.map.renderer.deselectTile();
-      this.worldUI.hideBuildPalette();
-      this.worldUI.clearTileIcons();
+      // Fires on enter/cycle/cancel/confirm. Re-render the ghost + cycler; when
+      // no longer in build mode, restore the plain selection UI for the tile.
+      this.refreshBuildMode();
+      if (!buildCtrl.buildMode) this.refreshSelectionUI();
       this.ui.update();
     };
 
     this.ui = new GameUI(this.gameTime, this.resources, this.tech, this.production, buildCtrl);
 
     this.worldUI = new WorldUI(this, (q, r) => this.map.axialToWorld(q, r));
-    this.worldUI.onBuildingSelected = (type, q, r) => {
-      this.worldUI.hideBuildPalette();
-      this.worldUI.clearTileIcons();
-      this.map.renderer.deselectTile();
-      this.buildCtrl.placeBuildingAt(q, r, type);
+    this.worldUI.onBuildStart = (q, r) => {
+      this.buildCtrl.enterBuildModeAt(q, r);
     };
+    this.worldUI.onCyclePrev = () => this.buildCtrl.cycle(-1);
+    this.worldUI.onCycleNext = () => this.buildCtrl.cycle(1);
+    this.worldUI.onBuildConfirm = () => this.buildCtrl.confirm();
 
     this.panelManager = new PanelManager();
 
@@ -116,7 +112,7 @@ export class GameScene extends Phaser.Scene {
       if (info !== null) {
         this.refreshSelectionUI();
       } else {
-        this.worldUI.hideBuildPalette();
+        this.worldUI.clearBuildUI();
         this.worldUI.clearTileIcons();
       }
     };
@@ -128,20 +124,23 @@ export class GameScene extends Phaser.Scene {
     this.camera = new CameraController(this);
 
     this.input.keyboard!.on('keydown-ESC', () => {
-      if (this.worldUI.isPaletteVisible()) {
-        this.worldUI.hideBuildPalette();
-        this.worldUI.clearTileIcons();
-        this.map.renderer.deselectTile();
+      if (buildCtrl.buildMode) {
+        // Back out of build mode; onChanged restores the selection UI.
+        buildCtrl.cancel();
         return;
       }
-      if (buildCtrl.buildMode) {
-        buildCtrl.cancel();
-        this.map.renderer.deselectTile();
-      }
+      this.map.renderer.deselectTile();
+      this.worldUI.clearBuildUI();
+      this.worldUI.clearTileIcons();
+      this.ui.showTileInfo(null);
     });
 
     this.input.keyboard!.on('keydown-B', () => {
-      buildCtrl.toggleOrCycle();
+      if (buildCtrl.buildMode) buildCtrl.cycle(1);
+    });
+
+    this.input.keyboard!.on('keydown-ENTER', () => {
+      if (buildCtrl.buildMode) buildCtrl.confirm();
     });
 
     this.input.keyboard!.on('keydown-T', () => {
@@ -182,6 +181,8 @@ export class GameScene extends Phaser.Scene {
     this.ui.update();
   }
 
+  // Selection UI (not in build mode): buildings show their yields; empty
+  // buildable tiles adjacent to a building offer a "Build" button.
   private refreshSelectionUI(): void {
     const coords = this.map.renderer.getSelectedCoords();
     if (!coords) return;
@@ -192,68 +193,57 @@ export class GameScene extends Phaser.Scene {
     const tile = this.map.tiles.get(hexKey(q, r));
     if (!tile) return;
 
+    this.worldUI.clearBuildUI();
+    this.worldUI.clearTileIcons();
+
     const building = this.map.buildingManager.getBuildingAt(q, r);
 
     if (building) {
-      this.worldUI.hideBuildPalette();
       const icons = this.buildYieldIcons(q, r, building.buildingType, tile.tileType);
       if (icons.length > 0) this.worldUI.showTileIcons(icons);
-    } else if (TILE_CONFIGS[tile.tileType].buildable) {
-      this.worldUI.clearTileIcons();
-      const options = this.computeBuildOptions(q, r, tile.tileType);
-      if (options.length > 0) {
-        this.worldUI.showBuildPalette(q, r, options);
-      }
+    } else if (TILE_CONFIGS[tile.tileType].buildable && this.map.hasAdjacentBuilding(q, r)) {
+      this.worldUI.showBuildButton(q, r);
     }
   }
 
-  private computeBuildOptions(q: number, r: number, tileType: number): BuildOption[] {
-    const types = (() => {
-      const all = Object.values(BuildingType).filter(
-        (v): v is BuildingType => typeof v === 'number' && v !== BuildingType.TOWN_HALL,
-      );
-      return all.filter((t) => this.tech.isBuildingAvailable(t));
-    })();
+  // Build mode UI: a ghost of the current building on the locked tile plus the
+  // cycler panel, showing yields when valid or the reason it can't be placed.
+  private refreshBuildMode(): void {
+    const bt = this.buildCtrl.buildTile;
+    const type = this.buildCtrl.selectedType;
+    if (!this.buildCtrl.buildMode || !bt || type === null) {
+      this.worldUI.clearBuildUI();
+      this.map.renderer.hideGhost();
+      return;
+    }
 
+    const { q, r } = bt;
     const tile = this.map.tiles.get(hexKey(q, r));
+    if (!tile) return;
 
-    return types.map((type) => {
-      const config = BUILDING_CONFIGS[type];
-      let allowed = true;
-      let blockReason: string | null = null;
+    const config = BUILDING_CONFIGS[type];
+    const valid = this.buildCtrl.canBuildAt(q, r) === true;
 
-      if (!config.allowedTiles.includes(tileType)) {
-        allowed = false;
-        blockReason = `needs ${config.allowedTiles.map((t) => TILE_CONFIGS[t].name).join('/')}`;
-      } else if (!config.isWall && tile?.buildingId) {
-        allowed = false;
-        blockReason = 'occupied';
-      } else if (config.isWall && tile?.seaWalled) {
-        allowed = false;
-        blockReason = 'already walled';
-      } else if (!this.map.hasAdjacentBuilding(q, r)) {
-        allowed = false;
-        blockReason = 'no adj bldg';
-      } else if (config.requiresCoastal && !this.map.isCoastal(q, r)) {
-        allowed = false;
-        blockReason = 'coastal only';
-      } else if (config.cost > 0 && this.resources.materials < config.cost) {
-        allowed = false;
-        blockReason = `need ${config.cost}m`;
-      }
+    this.map.renderer.showGhost(q, r, config.iconShape, config.iconColor, valid);
 
-      return {
-        buildingType: type,
-        name: config.name,
-        iconColor: config.iconColor,
-        iconShape: config.iconShape,
-        cost: config.cost,
-        canAfford: config.cost === 0 || this.resources.materials >= config.cost,
-        yields: getBuildingYields(type, tileType),
-        allowed,
-        blockReason,
-      };
-    });
+    const detail = valid
+      ? config.isWall
+        ? 'Reduces erosion'
+        : this.yieldSummary(type, tile.tileType)
+      : (this.buildCtrl.buildBlockReason(q, r) ?? 'cannot build here');
+    const costStr = config.cost > 0 ? `Cost: ${config.cost} mat` : 'Free';
+
+    this.worldUI.showBuildCycler(q, r, { name: config.name, detail, valid, costStr });
+  }
+
+  private yieldSummary(buildingType: number, tileType: number): string {
+    const y = getBuildingYields(buildingType, tileType);
+    const parts: string[] = [];
+    if (y.food) parts.push(`Food ${y.food > 0 ? '+' : ''}${y.food}`);
+    if (y.materials) parts.push(`Mat ${y.materials > 0 ? '+' : ''}${y.materials}`);
+    if (y.science) parts.push(`Sci ${y.science > 0 ? '+' : ''}${y.science}`);
+    if (y.population) parts.push(`Pop ${y.population > 0 ? '+' : ''}${y.population}`);
+    return parts.length > 0 ? parts.join(', ') : 'no yield';
   }
 
   private buildYieldIcons(

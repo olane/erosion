@@ -1,10 +1,21 @@
 import Phaser from 'phaser';
 import { HEX_SIZE } from '../constants.ts';
-import type { BuildOption, TileIcon } from './types.ts';
+import type { TileIcon } from './types.ts';
+
+export interface BuildCyclerState {
+  name: string;
+  detail: string;
+  valid: boolean;
+  costStr: string;
+}
 
 export class WorldUI {
-  onBuildingSelected: ((buildingType: number, q: number, r: number) => void) | null = null;
-  onPaletteClosed: (() => void) | null = null;
+  // Selection -> "Build" button.
+  onBuildStart: ((q: number, r: number) => void) | null = null;
+  // Cycler controls.
+  onCyclePrev: (() => void) | null = null;
+  onCycleNext: (() => void) | null = null;
+  onBuildConfirm: (() => void) | null = null;
 
   private scene: Phaser.Scene;
   private axialToWorld: (q: number, r: number) => { x: number; y: number };
@@ -14,13 +25,10 @@ export class WorldUI {
   private iconGfx: Phaser.GameObjects.Graphics;
   private iconTexts: Phaser.GameObjects.Text[] = [];
 
-  private paletteContainer: Phaser.GameObjects.Container;
-  private paletteBg: Phaser.GameObjects.Graphics;
-  private paletteButtons: Phaser.GameObjects.Graphics[] = [];
-  private paletteTexts: Phaser.GameObjects.Text[] = [];
-  private paletteVisible = false;
-  private paletteQ = 0;
-  private paletteR = 0;
+  // Shared container for the build button and the build cycler (mutually
+  // exclusive states of the same tile selection).
+  private buildContainer: Phaser.GameObjects.Container;
+  private buildObjects: Phaser.GameObjects.GameObject[] = [];
 
   constructor(
     scene: Phaser.Scene,
@@ -37,11 +45,8 @@ export class WorldUI {
     this.iconGfx = scene.add.graphics();
     this.iconContainer.add(this.iconGfx);
 
-    this.paletteContainer = scene.add.container(0, 0);
-    this.paletteContainer.setDepth(101);
-    this.paletteBg = scene.add.graphics();
-    this.paletteContainer.add(this.paletteBg);
-    this.paletteContainer.setVisible(false);
+    this.buildContainer = scene.add.container(0, 0);
+    this.buildContainer.setDepth(101);
   }
 
   // ---- Tile icons ----
@@ -94,152 +99,172 @@ export class WorldUI {
     }
   }
 
-  // ---- Build palette ----
+  // ---- Build entry button ----
 
-  isPaletteVisible(): boolean {
-    return this.paletteVisible;
+  clearBuildUI(): void {
+    this.buildObjects.forEach((o) => o.destroy());
+    this.buildObjects = [];
+    this.scene.input.setDefaultCursor('default');
   }
 
-  getPaletteTile(): { q: number; r: number } | null {
-    return this.paletteVisible ? { q: this.paletteQ, r: this.paletteR } : null;
-  }
-
-  showBuildPalette(q: number, r: number, options: BuildOption[]): void {
-    this.hideBuildPalette();
-
-    this.paletteQ = q;
-    this.paletteR = r;
+  showBuildButton(q: number, r: number): void {
+    this.clearBuildUI();
 
     const { x, y } = this.axialToWorld(q, r);
-    const btnW = 128;
-    const btnH = 48;
-    const gap = 3;
-    const pad = 5;
-    const totalH = options.length * (btnH + gap) - gap + pad * 2;
+    const w = 88;
+    const h = 32;
+    const px = x + HEX_SIZE + 6;
+    const py = y - h / 2;
+
+    this.button(px, py, w, h, '➕ Build', '#cdeecd', 0x2a4e2a, 0x44aa44, true, () => {
+      if (this.onBuildStart) this.onBuildStart(q, r);
+    });
+  }
+
+  // ---- Build cycler ----
+
+  showBuildCycler(q: number, r: number, state: BuildCyclerState): void {
+    this.clearBuildUI();
+
+    const { x, y } = this.axialToWorld(q, r);
+    const w = 178;
+    const pad = 8;
+    const gap = 6;
+    const rowH = 28;
+    const bodyH = 60;
+    const totalH = bodyH + rowH + pad;
 
     const px = x + HEX_SIZE + 6;
     const py = y - totalH / 2;
 
-    this.paletteBg.fillStyle(0x1a1a2e, 0.93);
-    this.paletteBg.fillRoundedRect(px, py, btnW + pad * 2, totalH, 6);
-    this.paletteBg.lineStyle(1, 0x445577, 0.9);
-    this.paletteBg.strokeRoundedRect(px, py, btnW + pad * 2, totalH, 6);
+    const bg = this.scene.add.graphics();
+    bg.fillStyle(0x1a1a2e, 0.94);
+    bg.fillRoundedRect(px, py, w, totalH, 6);
+    bg.lineStyle(1, 0x445577, 0.9);
+    bg.strokeRoundedRect(px, py, w, totalH, 6);
+    this.buildContainer.add(bg);
+    this.buildObjects.push(bg);
 
-    for (let i = 0; i < options.length; i++) {
-      const opt = options[i];
-      const by = py + pad + i * (btnH + gap);
+    this.label(px + pad, py + 7, state.name, '12px', '#ffffff');
+    this.label(
+      px + pad,
+      py + 26,
+      state.detail,
+      '10px',
+      state.valid ? '#aaccaa' : '#dd8888',
+      w - pad * 2,
+    );
+    this.label(px + pad, py + 42, state.costStr, '10px', state.valid ? '#ccaa66' : '#888888');
 
-      const gfx = this.scene.add.graphics();
-      this.drawPaletteButton(gfx, px + pad, by, btnW, btnH, opt, false);
+    // Controls row: [<]  [ Build ]  [>]
+    const arrowW = 30;
+    const rowY = py + bodyH;
+    const confirmW = w - pad * 2 - arrowW * 2 - gap * 2;
 
-      gfx.setInteractive(
-        new Phaser.Geom.Rectangle(px + pad, by, btnW, btnH),
-        Phaser.Geom.Rectangle.Contains,
-      );
+    this.button(px + pad, rowY, arrowW, rowH, '◀', '#ffffff', 0x2a2a4e, 0x6688cc, true, () => {
+      if (this.onCyclePrev) this.onCyclePrev();
+    });
 
-      gfx.on('pointerover', () => {
-        if (opt.allowed) {
-          this.drawPaletteButton(gfx, px + pad, by, btnW, btnH, opt, true);
-        }
-        this.scene.input.setDefaultCursor(opt.allowed ? 'pointer' : 'default');
-      });
-      gfx.on('pointerout', () => {
-        this.drawPaletteButton(gfx, px + pad, by, btnW, btnH, opt, false);
-        this.scene.input.setDefaultCursor('default');
-      });
-      gfx.on('pointerdown', () => {
-        if (opt.allowed && this.onBuildingSelected) {
-          this.onBuildingSelected(opt.buildingType, q, r);
-        }
-      });
+    const confirmX = px + pad + arrowW + gap;
+    this.button(
+      confirmX,
+      rowY,
+      confirmW,
+      rowH,
+      'Build',
+      state.valid ? '#ffffff' : '#777777',
+      state.valid ? 0x2a4e2a : 0x222233,
+      state.valid ? 0x44aa44 : 0x333344,
+      state.valid,
+      () => {
+        if (state.valid && this.onBuildConfirm) this.onBuildConfirm();
+      },
+    );
 
-      const nameTxt = this.scene.add.text(px + pad + 5, by + 4, opt.name, {
-        fontFamily: 'Courier New',
-        fontSize: '12px',
-        color: opt.allowed ? '#ffffff' : '#888888',
-        resolution: window.devicePixelRatio,
-      });
-
-      const yieldParts: string[] = [];
-      if (opt.yields.food) yieldParts.push(`F${opt.yields.food > 0 ? '+' : ''}${opt.yields.food}`);
-      if (opt.yields.materials)
-        yieldParts.push(`M${opt.yields.materials > 0 ? '+' : ''}${opt.yields.materials}`);
-      if (opt.yields.science)
-        yieldParts.push(`S${opt.yields.science > 0 ? '+' : ''}${opt.yields.science}`);
-      if (opt.yields.population)
-        yieldParts.push(`P${opt.yields.population > 0 ? '+' : ''}${opt.yields.population}`);
-      const yieldStr = yieldParts.join(' ') || 'no yield';
-
-      const yieldTxt = this.scene.add.text(px + pad + 5, by + 20, yieldStr, {
-        fontFamily: 'Courier New',
-        fontSize: '10px',
-        color: opt.allowed ? '#aaccaa' : '#666666',
-        resolution: window.devicePixelRatio,
-      });
-
-      const blockStr = opt.blockReason ?? (opt.cost > 0 ? `${opt.cost}m` : 'free');
-      const costTxt = this.scene.add.text(px + pad + 5, by + 34, blockStr, {
-        fontFamily: 'Courier New',
-        fontSize: '10px',
-        color: opt.allowed ? (opt.canAfford ? '#ccaa66' : '#cc6666') : '#aa4444',
-        resolution: window.devicePixelRatio,
-      });
-
-      this.paletteContainer.add(gfx);
-      this.paletteContainer.add(nameTxt);
-      this.paletteContainer.add(yieldTxt);
-      this.paletteContainer.add(costTxt);
-
-      this.paletteButtons.push(gfx);
-      this.paletteTexts.push(nameTxt, yieldTxt, costTxt);
-    }
-
-    this.paletteContainer.setVisible(true);
-    this.paletteVisible = true;
+    const nextX = confirmX + confirmW + gap;
+    this.button(nextX, rowY, arrowW, rowH, '▶', '#ffffff', 0x2a2a4e, 0x6688cc, true, () => {
+      if (this.onCycleNext) this.onCycleNext();
+    });
   }
 
-  hideBuildPalette(): void {
-    this.paletteButtons.forEach((b) => b.destroy());
-    this.paletteButtons = [];
-    this.paletteTexts.forEach((t) => t.destroy());
-    this.paletteTexts = [];
-    this.paletteBg.clear();
-    this.paletteContainer.setVisible(false);
-    this.paletteVisible = false;
-    this.scene.input.setDefaultCursor('default');
-  }
+  // ---- Shared helpers ----
 
-  private drawPaletteButton(
-    gfx: Phaser.GameObjects.Graphics,
+  private button(
     x: number,
     y: number,
     w: number,
     h: number,
-    opt: BuildOption,
-    hover: boolean,
+    text: string,
+    textColor: string,
+    fill: number,
+    hoverFill: number,
+    enabled: boolean,
+    onClick: () => void,
   ): void {
-    gfx.clear();
-    if (hover && opt.allowed) {
-      gfx.fillStyle(0x3a3a6e, 1);
-    } else if (!opt.allowed) {
-      gfx.fillStyle(0x222233, 0.5);
-    } else {
-      gfx.fillStyle(0x2a2a4e, 0.85);
-    }
-    gfx.fillRoundedRect(x, y, w, h, 4);
-
-    if (hover && opt.allowed) {
-      gfx.lineStyle(1, 0x6688cc, 0.8);
+    const gfx = this.scene.add.graphics();
+    const draw = (bg: number) => {
+      gfx.clear();
+      gfx.fillStyle(bg, enabled ? 0.95 : 0.6);
+      gfx.fillRoundedRect(x, y, w, h, 4);
+      gfx.lineStyle(1, enabled ? 0x6688cc : 0x333344, 0.8);
       gfx.strokeRoundedRect(x, y, w, h, 4);
+    };
+    draw(fill);
+
+    const txt = this.scene.add.text(x + w / 2, y + h / 2, text, {
+      fontFamily: 'Courier New',
+      fontSize: '12px',
+      color: textColor,
+      resolution: window.devicePixelRatio,
+    });
+    txt.setOrigin(0.5, 0.5);
+
+    if (enabled) {
+      gfx.setInteractive(
+        new Phaser.Geom.Rectangle(x, y, w, h),
+        Phaser.Geom.Rectangle.Contains,
+      );
+      gfx.on('pointerover', () => {
+        draw(hoverFill);
+        this.scene.input.setDefaultCursor('pointer');
+      });
+      gfx.on('pointerout', () => {
+        draw(fill);
+        this.scene.input.setDefaultCursor('default');
+      });
+      gfx.on('pointerdown', onClick);
     }
+
+    this.buildContainer.add(gfx);
+    this.buildContainer.add(txt);
+    this.buildObjects.push(gfx, txt);
+  }
+
+  private label(
+    x: number,
+    y: number,
+    text: string,
+    fontSize: string,
+    color: string,
+    wordWrapWidth?: number,
+  ): void {
+    const txt = this.scene.add.text(x, y, text, {
+      fontFamily: 'Courier New',
+      fontSize,
+      color,
+      resolution: window.devicePixelRatio,
+      ...(wordWrapWidth ? { wordWrap: { width: wordWrapWidth } } : {}),
+    });
+    this.buildContainer.add(txt);
+    this.buildObjects.push(txt);
   }
 
   // ---- Lifecycle ----
 
   destroy(): void {
     this.clearTileIcons();
-    this.hideBuildPalette();
-    this.paletteContainer.destroy();
+    this.clearBuildUI();
+    this.buildContainer.destroy();
     this.iconContainer.destroy();
     this.container.destroy();
   }

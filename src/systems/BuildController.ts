@@ -8,12 +8,16 @@ import type { TileData } from '../map/types.ts';
 export class BuildController {
   private _buildMode = false;
   private _selectedType: BuildingType | null = null;
+  private _buildTile: { q: number; r: number } | null = null;
 
   get buildMode(): boolean {
     return this._buildMode;
   }
   get selectedType(): BuildingType | null {
     return this._selectedType;
+  }
+  get buildTile(): { q: number; r: number } | null {
+    return this._buildTile;
   }
 
   private tiles: () => Map<string, TileData>;
@@ -46,28 +50,53 @@ export class BuildController {
     this.refreshTile = refreshTile;
   }
 
-  toggleOrCycle(): void {
+  // Enter build mode locked to a single tile. The player then cycles through
+  // the available building types (seeing a ghost + validity on this tile) and
+  // confirms one to place. Returns false if the tile can't host a build.
+  enterBuildModeAt(q: number, r: number): boolean {
+    if (!this.hasAdjacentBuilding(q, r)) return false;
+    const available = this.getAvailableTypes();
+    if (available.length === 0) return false;
+
+    this._buildMode = true;
+    this._buildTile = { q, r };
+    this._selectedType = available[0];
+    if (this.onChanged) this.onChanged();
+    return true;
+  }
+
+  cycle(dir: number): void {
+    if (!this._buildMode || this._selectedType === null) return;
     const available = this.getAvailableTypes();
     if (available.length === 0) return;
-
-    if (this._buildMode && this._selectedType !== null) {
-      const idx = available.indexOf(this._selectedType);
-      this._selectedType = available[(idx + 1) % available.length];
-    } else {
-      this._buildMode = true;
-      this._selectedType = available[0];
-    }
+    const n = available.length;
+    const idx = available.indexOf(this._selectedType);
+    this._selectedType = available[(((idx + dir) % n) + n) % n];
     if (this.onChanged) this.onChanged();
+  }
+
+  // Place the currently-selected building on the locked tile. Exits build mode
+  // on success. Returns false (and stays in build mode) if placement is invalid.
+  confirm(): boolean {
+    if (!this._buildTile || this._selectedType === null) return false;
+    const { q, r } = this._buildTile;
+    const ok = this.placeBuildingAt(q, r, this._selectedType);
+    if (ok) this.cancel();
+    return ok;
   }
 
   cancel(): void {
     this._buildMode = false;
     this._selectedType = null;
+    this._buildTile = null;
     if (this.onChanged) this.onChanged();
   }
 
   canBuildAt(q: number, r: number): boolean | null {
     if (!this._buildMode || this._selectedType === null) return null;
+    // Build mode is locked to a single tile, so only that tile has a meaningful
+    // valid/invalid state (used for the hover highlight and ghost tint).
+    if (this._buildTile && (this._buildTile.q !== q || this._buildTile.r !== r)) return null;
     const tile = this.tiles().get(hexKey(q, r));
     if (!tile) return false;
     if (!this.buildingManager.canPlace(this._selectedType, tile)) return false;
@@ -158,35 +187,5 @@ export class BuildController {
     this.refreshTile(q, r);
     if (this.onBuildPlaced) this.onBuildPlaced();
     return true;
-  }
-
-  tryPlaceBuilding(q: number, r: number): void {
-    const tile = this.tiles().get(hexKey(q, r));
-    if (!tile || this._selectedType === null) return;
-
-    if (!this.hasAdjacentBuilding(q, r)) return;
-
-    const config = BUILDING_CONFIGS[this._selectedType];
-    if (config.cost > 0) {
-      if (this.resourceProvider && !this.resourceProvider.canAffordMaterials(config.cost)) {
-        return;
-      }
-      if (this.resourceProvider) this.resourceProvider.spendMaterials(config.cost);
-    }
-
-    if (config.isWall) {
-      tile.seaWalled = true;
-      this.refreshTile(q, r);
-      this.cancel();
-      if (this.onBuildPlaced) this.onBuildPlaced();
-      return;
-    }
-
-    const result = this.buildingManager.placeBuilding(this._selectedType, tile);
-    if (result !== null) {
-      this.refreshTile(q, r);
-      this.cancel();
-      if (this.onBuildPlaced) this.onBuildPlaced();
-    }
   }
 }

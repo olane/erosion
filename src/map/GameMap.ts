@@ -157,12 +157,13 @@ export class GameMap {
   }
 
   private handleTileClick(q: number, r: number): void {
-    if (
-      this.buildController &&
-      this.buildController.buildMode &&
-      this.buildController.selectedType !== null
-    ) {
-      this.buildController.tryPlaceBuilding(q, r);
+    if (this.buildController && this.buildController.buildMode) {
+      // Build mode is locked to one tile; clicking it confirms the placement,
+      // clicking elsewhere is ignored (use the cycler panel or Esc).
+      const bt = this.buildController.buildTile;
+      if (bt && bt.q === q && bt.r === r) {
+        this.buildController.confirm();
+      }
       return;
     }
 
@@ -185,6 +186,9 @@ export class GameMap {
     ) {
       return;
     }
+    // Only preview the locked build tile; the cycler panel is the source of truth.
+    const bt = this.buildController.buildTile;
+    if (!bt || bt.q !== q || bt.r !== r) return;
     const info = this.buildController.buildPreviewInfo(q, r);
     if (this.buildController.onBuildPreview) this.buildController.onBuildPreview(info);
   }
