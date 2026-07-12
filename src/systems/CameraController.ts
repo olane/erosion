@@ -7,6 +7,13 @@ const ZOOM_SENSITIVITY = 0.001;
 
 export class CameraController {
   private cam: Phaser.Cameras.Scene2D.Camera;
+  // The game is rendered at the display's native pixel density (see main.ts),
+  // so the world coordinate space is scaled up by devicePixelRatio. We keep a
+  // separate "logical" zoom (the user-facing 0.4–2.5 range) and multiply it by
+  // renderScale when applying it to the camera, so the on-screen size of the
+  // world matches what it would be at CSS resolution.
+  private renderScale = window.devicePixelRatio || 1;
+  private logicalZoom = 1;
   private dragStartX = 0;
   private dragStartY = 0;
   private dragging = false;
@@ -20,6 +27,7 @@ export class CameraController {
 
   constructor(scene: Phaser.Scene) {
     this.cam = scene.cameras.main;
+    this.cam.setZoom(this.logicalZoom * this.renderScale);
 
     scene.input.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
       if (pointer.middleButtonDown()) {
@@ -48,11 +56,14 @@ export class CameraController {
     scene.input.on(
       'wheel',
       (_pointer: Phaser.Input.Pointer, _gameObjects: unknown[], _dx: number, dy: number) => {
-        const oldZoom = this.cam.zoom;
-        const newZoom = Phaser.Math.Clamp(oldZoom - dy * ZOOM_SENSITIVITY, MIN_ZOOM, MAX_ZOOM);
+        this.logicalZoom = Phaser.Math.Clamp(
+          this.logicalZoom - dy * ZOOM_SENSITIVITY,
+          MIN_ZOOM,
+          MAX_ZOOM,
+        );
         const pointer = scene.input.activePointer;
         const worldPoint = this.cam.getWorldPoint(pointer.x, pointer.y);
-        this.cam.setZoom(newZoom);
+        this.cam.setZoom(this.logicalZoom * this.renderScale);
         const newWorldPoint = this.cam.getWorldPoint(pointer.x, pointer.y);
         this.cam.scrollX += worldPoint.x - newWorldPoint.x;
         this.cam.scrollY += worldPoint.y - newWorldPoint.y;
@@ -69,7 +80,7 @@ export class CameraController {
   }
 
   panWithKeys(): void {
-    const speed = PAN_SPEED / this.cam.zoom;
+    const speed = PAN_SPEED / this.logicalZoom;
     if (this.cursors.up.isDown || this.wasd.up.isDown) this.cam.scrollY -= speed;
     if (this.cursors.down.isDown || this.wasd.down.isDown) this.cam.scrollY += speed;
     if (this.cursors.left.isDown || this.wasd.left.isDown) this.cam.scrollX -= speed;

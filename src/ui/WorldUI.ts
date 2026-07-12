@@ -62,7 +62,7 @@ export class WorldUI {
       byTile.get(key)!.push(icon);
     }
 
-    const iconR = 9;
+    const iconR = 11;
     const yOff = -(HEX_SIZE * 0.7);
 
     for (const [, group] of byTile) {
@@ -77,12 +77,13 @@ export class WorldUI {
         this.iconGfx.fillStyle(icon.bgColor, 0.85);
         this.iconGfx.fillCircle(cx, y + yOff, iconR);
 
-        const fontSize = icon.size === 'medium' ? '10px' : '8px';
+        const fontSize = icon.size === 'medium' ? '12px' : '10px';
         const txt = this.scene.add.text(cx, y + yOff, icon.text, {
           fontFamily: 'Courier New',
           fontSize,
           color: `#${icon.color.toString(16).padStart(6, '0')}`,
           align: 'center',
+          resolution: window.devicePixelRatio,
         });
         txt.setOrigin(0.5, 0.5);
         this.iconContainer.add(txt);
@@ -110,8 +111,8 @@ export class WorldUI {
     this.paletteR = r;
 
     const { x, y } = this.axialToWorld(q, r);
-    const btnW = 110;
-    const btnH = 42;
+    const btnW = 128;
+    const btnH = 48;
     const gap = 3;
     const pad = 5;
     const totalH = options.length * (btnH + gap) - gap + pad * 2;
@@ -152,10 +153,11 @@ export class WorldUI {
         }
       });
 
-      const nameTxt = this.scene.add.text(px + pad + 5, by + 3, opt.name, {
+      const nameTxt = this.scene.add.text(px + pad + 5, by + 4, opt.name, {
         fontFamily: 'Courier New',
-        fontSize: '10px',
+        fontSize: '12px',
         color: opt.allowed ? '#ffffff' : '#888888',
+        resolution: window.devicePixelRatio,
       });
 
       const yieldParts: string[] = [];
@@ -168,17 +170,19 @@ export class WorldUI {
         yieldParts.push(`P${opt.yields.population > 0 ? '+' : ''}${opt.yields.population}`);
       const yieldStr = yieldParts.join(' ') || 'no yield';
 
-      const yieldTxt = this.scene.add.text(px + pad + 5, by + 16, yieldStr, {
+      const yieldTxt = this.scene.add.text(px + pad + 5, by + 20, yieldStr, {
         fontFamily: 'Courier New',
-        fontSize: '8px',
+        fontSize: '10px',
         color: opt.allowed ? '#aaccaa' : '#666666',
+        resolution: window.devicePixelRatio,
       });
 
       const blockStr = opt.blockReason ?? (opt.cost > 0 ? `${opt.cost}m` : 'free');
-      const costTxt = this.scene.add.text(px + pad + 5, by + 28, blockStr, {
+      const costTxt = this.scene.add.text(px + pad + 5, by + 34, blockStr, {
         fontFamily: 'Courier New',
-        fontSize: '8px',
+        fontSize: '10px',
         color: opt.allowed ? (opt.canAfford ? '#ccaa66' : '#cc6666') : '#aa4444',
+        resolution: window.devicePixelRatio,
       });
 
       this.paletteContainer.add(gfx);
