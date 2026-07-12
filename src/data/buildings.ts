@@ -1,4 +1,5 @@
 import { TileType } from './tiles.ts';
+import type { UpgradeType } from './upgrades.ts';
 
 export enum BuildingType {
   TOWN_HALL,
@@ -7,7 +8,6 @@ export enum BuildingType {
   LUMBER_CAMP,
   FISHING_DOCK,
   HOUSE,
-  SEA_WALL,
   WORKSHOP,
   WAREHOUSE,
   LIGHTHOUSE,
@@ -36,9 +36,13 @@ export interface BuildingTypeConfig {
     perTile?: Partial<Record<TileType, Partial<BuildingYields>>>;
   };
   requiresCoastal?: boolean;
-  isWall?: boolean;
   tier: number;
+  // Game-seconds to construct. Defaults by tier via getBuildTime() when omitted.
+  buildTime?: number;
 }
+
+// Default construction time (game-seconds) indexed by building tier.
+const DEFAULT_BUILD_TIME_BY_TIER = [3, 5, 8];
 
 export const BUILDING_CONFIGS: Record<BuildingType, BuildingTypeConfig> = {
   [BuildingType.TOWN_HALL]: {
@@ -126,18 +130,6 @@ export const BUILDING_CONFIGS: Record<BuildingType, BuildingTypeConfig> = {
     yields: { default: { food: -2, population: 1 } },
     tier: 0,
   },
-  [BuildingType.SEA_WALL]: {
-    name: 'Sea Wall',
-    iconColor: 0x8888cc,
-    iconShape: 'hexagon',
-    allowedTiles: [TileType.SAND, TileType.GRASS],
-    iconText: 'W',
-    cost: 20,
-    yields: { default: { population: -1 } },
-    requiresCoastal: true,
-    isWall: true,
-    tier: 0,
-  },
   [BuildingType.WORKSHOP]: {
     name: 'Workshop',
     iconColor: 0xcccc44,
@@ -205,6 +197,11 @@ export const BUILDING_CONFIGS: Record<BuildingType, BuildingTypeConfig> = {
   },
 };
 
+export function getBuildTime(buildingType: BuildingType): number {
+  const config = BUILDING_CONFIGS[buildingType];
+  return config.buildTime ?? DEFAULT_BUILD_TIME_BY_TIER[config.tier] ?? 4;
+}
+
 export function getBuildingYields(buildingType: BuildingType, tileType: TileType): BuildingYields {
   const config = BUILDING_CONFIGS[buildingType];
   const base: BuildingYields = {
@@ -239,4 +236,5 @@ export interface BuildingInstance {
   buildingType: BuildingType;
   q: number;
   r: number;
+  upgrades: UpgradeType[];
 }

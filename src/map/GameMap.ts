@@ -7,6 +7,7 @@ import {
   getBuildingYields,
   formatYields,
 } from '../data/buildings.ts';
+import { UpgradeType } from '../data/upgrades.ts';
 import { MAP_RADIUS, HEX_SIZE } from '../constants.ts';
 import { MapRenderer } from './MapRenderer.ts';
 import { MapGenerator } from './MapGenerator.ts';
@@ -72,7 +73,6 @@ export class GameMap {
 
     tile.tileType = newType;
     tile.erosionProgress = 0;
-    tile.seaWalled = false;
 
     if (tile.buildingId !== null) {
       if (!this.buildingManager.isCompatibleWithTile(q, r, newType)) {
@@ -111,7 +111,11 @@ export class GameMap {
 
   canBuildAt(q: number, r: number): boolean | null {
     if (!this.buildController) return null;
-    return this.buildController.canBuildAt(q, r);
+    return this.buildController.canConfirmAt(q, r);
+  }
+
+  isSeaWalled(q: number, r: number): boolean {
+    return this.buildingManager.hasUpgradeAt(q, r, UpgradeType.SEA_WALL);
   }
 
   onBuildingLost(q: number, r: number): void {
@@ -149,14 +153,14 @@ export class GameMap {
   }
 
   private handleTileClick(q: number, r: number): void {
-    if (this.buildController && this.buildController.buildMode) {
-      // Build mode is locked to one tile; clicking it confirms the placement.
+    if (this.buildController && this.buildController.active) {
+      // A session is locked to one tile; clicking it confirms the action.
       const bt = this.buildController.buildTile;
       if (bt && bt.q === q && bt.r === r) {
         this.buildController.confirm();
         return;
       }
-      // Clicking a different tile dismisses build mode and selects that tile.
+      // Clicking a different tile dismisses the session and selects that tile.
       this.buildController.cancel();
     }
 
@@ -184,7 +188,8 @@ export class GameMap {
       const parts = formatYields(getBuildingYields(building.buildingType, tile.tileType));
       if (parts.length) yieldStr = ` | ${parts.join(' ')}`;
     }
-    const wallStr = tile.seaWalled ? ' | Sea Walled' : '';
+    const wallStr =
+      building && building.upgrades.includes(UpgradeType.SEA_WALL) ? ' | Sea Walled' : '';
     return (
       `(${q},${r}) ${tileName}${bldgString}${wallStr}${yieldStr}  |  ` +
       `Erosion ${tile.erosionProgress.toFixed(0)}%  |  ` +

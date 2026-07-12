@@ -3,8 +3,18 @@ import { hexKey, getHexVertices, axialToPixel } from './HexUtils.ts';
 import { TileType, TILE_CONFIGS, EROSION_TRANSITION } from '../data/tiles.ts';
 import { BUILDING_CONFIGS } from '../data/buildings.ts';
 import type { BuildingInstance } from '../data/buildings.ts';
+import { UpgradeType } from '../data/upgrades.ts';
 import { HEX_SIZE } from '../constants.ts';
 import type { TileData } from './types.ts';
+
+export interface ConstructionOverlay {
+  q: number;
+  r: number;
+  progress: number; // 0..1
+  // For build jobs, a faint preview of the incoming building is drawn.
+  shape?: 'circle' | 'triangle' | 'square' | 'diamond' | 'hexagon';
+  color?: number;
+}
 
 export class MapRenderer {
   container: Phaser.GameObjects.Container;
@@ -19,6 +29,7 @@ export class MapRenderer {
   private highlightGfx: Phaser.GameObjects.Graphics | null = null;
   private hoverHighlight: Phaser.GameObjects.Graphics | null = null;
   private ghostGfx: Phaser.GameObjects.Graphics | null = null;
+  private constructionGfx: Phaser.GameObjects.Graphics | null = null;
   private tileGraphics: Map<string, Phaser.GameObjects.Graphics> = new Map();
 
   constructor(
@@ -110,9 +121,12 @@ export class MapRenderer {
     const gfx = this.tileGraphics.get(hexKey(tile.q, tile.r));
     if (!gfx) return;
 
-    const hexBorder = tile.seaWalled ? 0x4488cc : tile.erosionProgress > 0 ? 0xff4444 : 0x333333;
-    const hexBorderAlpha = tile.seaWalled ? 0.9 : tile.erosionProgress > 0 ? 0.8 : 0.4;
-    const hexBorderWidth = tile.seaWalled ? 3 : 1;
+    const building = this.getBuildingAtTile?.(tile) ?? null;
+    const seaWalled = building?.upgrades.includes(UpgradeType.SEA_WALL) ?? false;
+
+    const hexBorder = seaWalled ? 0x4488cc : tile.erosionProgress > 0 ? 0xff4444 : 0x333333;
+    const hexBorderAlpha = seaWalled ? 0.9 : tile.erosionProgress > 0 ? 0.8 : 0.4;
+    const hexBorderWidth = seaWalled ? 3 : 1;
     this.drawHex(gfx, tile.q, tile.r, tile.tileType, hexBorder, hexBorderAlpha, hexBorderWidth);
 
     if (tile.erosionProgress > 0) {
@@ -251,6 +265,44 @@ export class MapRenderer {
 
   hideGhost(): void {
     this.ghostGfx?.clear();
+  }
+
+  // Redraws all in-progress construction overlays: a progress bar above each
+  // tile, plus a faint preview of the incoming building for build jobs. Called
+  // every frame, so it draws with graphics only (no per-frame text objects).
+  renderConstruction(overlays: ConstructionOverlay[]): void {
+    if (!this.constructionGfx) {
+      this.constructionGfx = this.scene.add.graphics();
+      this.container.add(this.constructionGfx);
+    }
+    const g = this.constructionGfx;
+    g.clear();
+
+    const barW = HEX_SIZE * 1.1;
+    const barH = 5;
+
+    for (const o of overlays) {
+      const { x, y } = this.axialToWorld(o.q, o.r);
+
+      if (o.shape) {
+        g.fillStyle(o.color ?? 0xffffff, 0.35);
+        g.lineStyle(1, 0x000000, 0.3);
+        this.drawBuildingShape(g, x, y, o.shape, HEX_SIZE * 0.35);
+      }
+
+      const bx = x - barW / 2;
+      const by = y - HEX_SIZE * 0.65;
+      const p = Math.max(0, Math.min(1, o.progress));
+
+      g.fillStyle(0x000000, 0.6);
+      g.fillRoundedRect(bx - 1, by - 1, barW + 2, barH + 2, 2);
+      g.fillStyle(0x333344, 0.9);
+      g.fillRect(bx, by, barW, barH);
+      g.fillStyle(0x44cc44, 1);
+      g.fillRect(bx, by, barW * p, barH);
+    }
+
+    this.container.bringToTop(g);
   }
 
   private isBuildingDanger(building: BuildingInstance, currentTileType: TileType): boolean {

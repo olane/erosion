@@ -67,7 +67,6 @@ export class MapGenerator {
           erosionProgress: 0,
           erosionRate,
           buildingId: null,
-          seaWalled: false,
         });
 
         if (isLand) {

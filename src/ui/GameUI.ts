@@ -1,5 +1,6 @@
 import type { TimeSystem } from '../systems/TimeSystem.ts';
 import { BUILDING_CONFIGS } from '../data/buildings.ts';
+import { UPGRADE_CONFIGS } from '../data/upgrades.ts';
 import { SECONDS_PER_DAY } from '../constants.ts';
 import type { TechManager } from '../systems/TechManager.ts';
 import { ResourceManager } from '../systems/ResourceManager.ts';
@@ -114,7 +115,7 @@ export class GameUI {
       this.updateDisplay();
     });
     this.buildBtnEl.addEventListener('click', () => {
-      if (this.buildCtrl.buildMode) {
+      if (this.buildCtrl.active) {
         this.buildCtrl.cycle(1);
       }
     });
@@ -157,11 +158,17 @@ export class GameUI {
       this.popEl.className = '';
     }
 
-    if (this.buildCtrl.buildMode && this.buildCtrl.selectedType !== null) {
-      const config = BUILDING_CONFIGS[this.buildCtrl.selectedType];
+    const option = this.buildCtrl.current;
+    if (option?.kind === 'build') {
+      const config = BUILDING_CONFIGS[option.building];
       const costStr = config.cost > 0 ? `Cost: ${config.cost} mat` : 'Free';
       this.buildBtnEl.textContent = `Bldg: [${config.name}]`;
       this.buildStatusEl.textContent = `${costStr} | ◀ ▶ cycle (B) | Enter to build | Esc to cancel`;
+    } else if (option?.kind === 'upgrade') {
+      const config = UPGRADE_CONFIGS[option.upgrade];
+      const costStr = config.cost > 0 ? `Cost: ${config.cost} mat` : 'Free';
+      this.buildBtnEl.textContent = `Upgrade: [${config.name}]`;
+      this.buildStatusEl.textContent = `${costStr} | ◀ ▶ cycle (B) | Enter to apply | Esc to cancel`;
     } else {
       this.buildBtnEl.textContent = 'Build: select a tile next to a building';
       this.buildStatusEl.textContent = '';

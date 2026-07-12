@@ -8,12 +8,14 @@ import { ProductionSystem } from '../systems/ProductionSystem.ts';
 import { TechManager } from '../systems/TechManager.ts';
 import { TechNode } from '../data/tech.ts';
 import { BuildController } from '../systems/BuildController.ts';
+import { ConstructionSystem } from '../systems/ConstructionSystem.ts';
 import {
   BuildingType,
   BUILDING_CONFIGS,
   getBuildingYields,
   formatYields,
 } from '../data/buildings.ts';
+import { UpgradeType, UPGRADE_CONFIGS, upgradeAppliesTo } from '../data/upgrades.ts';
 import { TILE_CONFIGS } from '../data/tiles.ts';
 import { GameUI } from '../ui/GameUI.ts';
 import { CameraController } from '../systems/CameraController.ts';
@@ -34,6 +36,7 @@ export class GameScene extends Phaser.Scene {
   private camera!: CameraController;
   private gameOver = false;
   private buildCtrl!: BuildController;
+  private construction!: ConstructionSystem;
 
   constructor() {
     super({ key: 'GameScene' });
@@ -75,13 +78,17 @@ export class GameScene extends Phaser.Scene {
       return all.filter((t) => this.tech.isBuildingAvailable(t));
     };
 
+    this.construction = new ConstructionSystem();
+
     const buildCtrl = new BuildController(
       () => this.map.tiles,
       this.map.buildingManager,
+      this.construction,
       this.map.resourceProvider,
       (q, r) => this.map.hasAdjacentBuilding(q, r),
       (q, r) => this.map.isCoastal(q, r),
       getAvailableTypes,
+      (q, r) => this.getAvailableUpgrades(q, r),
       (q, r) => this.map.refreshTile(q, r),
     );
     this.buildCtrl = buildCtrl;
@@ -89,13 +96,17 @@ export class GameScene extends Phaser.Scene {
     this.map.buildController = buildCtrl;
 
     buildCtrl.onBuildPlaced = () => {
+      // Fires when a construction job completes (building placed / upgrade
+      // applied). Refresh caps and the selection UI so a just-finished building
+      // shows its yields and any newly-available upgrades.
       this.production.recalculateCaps();
+      if (!buildCtrl.active) this.refreshSelectionUI();
     };
     buildCtrl.onChanged = () => {
       // Fires on enter/cycle/cancel/confirm. Re-render the ghost + cycler; when
-      // no longer in build mode, restore the plain selection UI for the tile.
+      // no session is active, restore the plain selection UI for the tile.
       this.refreshBuildMode();
-      if (!buildCtrl.buildMode) this.refreshSelectionUI();
+      if (!buildCtrl.active) this.refreshSelectionUI();
       this.ui.update();
     };
 
@@ -104,6 +115,9 @@ export class GameScene extends Phaser.Scene {
     this.worldUI = new WorldUI(this, (q, r) => this.map.axialToWorld(q, r));
     this.worldUI.onBuildStart = (q, r) => {
       this.buildCtrl.enterBuildModeAt(q, r);
+    };
+    this.worldUI.onUpgradeStart = (q, r) => {
+      this.buildCtrl.enterUpgradeModeAt(q, r);
     };
     this.worldUI.onCyclePrev = () => this.buildCtrl.cycle(-1);
     this.worldUI.onCycleNext = () => this.buildCtrl.cycle(1);
@@ -128,8 +142,8 @@ export class GameScene extends Phaser.Scene {
     this.camera = new CameraController(this);
 
     this.input.keyboard!.on('keydown-ESC', () => {
-      if (buildCtrl.buildMode) {
-        // Back out of build mode; onChanged restores the selection UI.
+      if (buildCtrl.active) {
+        // Back out of the session; onChanged restores the selection UI.
         buildCtrl.cancel();
         return;
       }
@@ -140,11 +154,11 @@ export class GameScene extends Phaser.Scene {
     });
 
     this.input.keyboard!.on('keydown-B', () => {
-      if (buildCtrl.buildMode) buildCtrl.cycle(1);
+      if (buildCtrl.active) buildCtrl.cycle(1);
     });
 
     this.input.keyboard!.on('keydown-ENTER', () => {
-      if (buildCtrl.buildMode) buildCtrl.confirm();
+      if (buildCtrl.active) buildCtrl.confirm();
     });
 
     this.input.keyboard!.on('keydown-T', () => {
@@ -171,17 +185,35 @@ export class GameScene extends Phaser.Scene {
     const dt = this.gameTime.update(delta);
     if (dt <= 0) return;
 
+    this.construction.update(dt);
     this.erosion.update();
     this.production.update(this.gameTime.elapsed);
 
-    if (!this.map.buildController?.buildMode) {
+    if (!this.map.buildController?.active) {
       const selectedInfo = this.map.getSelectedTileInfo();
       if (selectedInfo !== null) {
         this.ui.showTileInfo(selectedInfo);
       }
     }
 
+    this.renderConstruction();
     this.ui.update();
+  }
+
+  private renderConstruction(): void {
+    this.map.renderer.renderConstruction(
+      this.construction.activeJobs.map((job) => {
+        const build = job.kind === 'build' && job.buildingType !== undefined;
+        const config = build ? BUILDING_CONFIGS[job.buildingType!] : null;
+        return {
+          q: job.q,
+          r: job.r,
+          progress: job.elapsed / job.totalTime,
+          shape: config?.iconShape,
+          color: config?.iconColor,
+        };
+      }),
+    );
   }
 
   private researchNextTech(): void {
@@ -200,14 +232,15 @@ export class GameScene extends Phaser.Scene {
     }
   }
 
-  // Selection UI (not in build mode): buildings show their yields; empty
-  // buildable tiles adjacent to a building offer a "Build" button.
+  // Selection UI (no active session): buildings show their yields plus an
+  // "Upgrade" button when upgrades are available; empty buildable tiles adjacent
+  // to a building offer a "Build" button.
   private refreshSelectionUI(): void {
     const coords = this.map.renderer.getSelectedCoords();
     if (!coords) return;
     const { q, r } = coords;
 
-    if (this.buildCtrl?.buildMode) return;
+    if (this.buildCtrl?.active) return;
 
     const tile = this.map.tiles.get(hexKey(q, r));
     if (!tile) return;
@@ -219,17 +252,38 @@ export class GameScene extends Phaser.Scene {
 
     if (building) {
       this.worldUI.showYieldIcons(q, r, getBuildingYields(building.buildingType, tile.tileType));
-    } else if (TILE_CONFIGS[tile.tileType].buildable && this.map.hasAdjacentBuilding(q, r)) {
+      if (this.getAvailableUpgrades(q, r).length > 0) {
+        this.worldUI.showUpgradeButton(q, r);
+      }
+    } else if (
+      TILE_CONFIGS[tile.tileType].buildable &&
+      this.map.hasAdjacentBuilding(q, r) &&
+      !this.construction.hasBuildJobAt(q, r)
+    ) {
       this.worldUI.showBuildButton(q, r);
     }
   }
 
-  // Build mode UI: a ghost of the current building on the locked tile plus the
-  // cycler panel, showing yields when valid or the reason it can't be placed.
+  // Upgrades applicable to the building on (q, r) that it doesn't already have.
+  // Per-tile validity (coastal, affordability) is enforced by the controller.
+  private getAvailableUpgrades(q: number, r: number): UpgradeType[] {
+    const building = this.map.buildingManager.getBuildingAt(q, r);
+    if (!building) return [];
+    const all = Object.values(UpgradeType).filter((v): v is UpgradeType => typeof v === 'number');
+    return all.filter(
+      (u) =>
+        upgradeAppliesTo(u, building.buildingType) &&
+        !building.upgrades.includes(u) &&
+        !this.construction.hasUpgradeJobAt(q, r, u),
+    );
+  }
+
+  // Session UI: the cycler panel for the locked tile, showing what happens when
+  // valid or the reason it can't. Build sessions also render a placement ghost.
   private refreshBuildMode(): void {
     const bt = this.buildCtrl.buildTile;
-    const type = this.buildCtrl.selectedType;
-    if (!this.buildCtrl.buildMode || !bt || type === null) {
+    const option = this.buildCtrl.current;
+    if (!this.buildCtrl.active || !bt || option === null) {
       this.worldUI.clearBuildUI();
       this.map.renderer.hideGhost();
       return;
@@ -239,19 +293,36 @@ export class GameScene extends Phaser.Scene {
     const tile = this.map.tiles.get(hexKey(q, r));
     if (!tile) return;
 
-    const config = BUILDING_CONFIGS[type];
-    const valid = this.buildCtrl.canBuildAt(q, r) === true;
+    const valid = this.buildCtrl.canConfirmAt(q, r) === true;
+    const blockReason = this.buildCtrl.blockReason(q, r);
 
-    this.map.renderer.showGhost(q, r, config.iconShape, config.iconColor, valid);
-
-    const detail = valid
-      ? config.isWall
-        ? 'Reduces erosion'
-        : this.yieldSummary(type, tile.tileType)
-      : (this.buildCtrl.buildBlockReason(q, r) ?? 'cannot build here');
-    const costStr = config.cost > 0 ? `Cost: ${config.cost} mat` : 'Free';
-
-    this.worldUI.showBuildCycler(q, r, { name: config.name, detail, valid, costStr });
+    if (option.kind === 'build') {
+      const config = BUILDING_CONFIGS[option.building];
+      this.map.renderer.showGhost(q, r, config.iconShape, config.iconColor, valid);
+      const detail = valid
+        ? this.yieldSummary(option.building, tile.tileType)
+        : (blockReason ?? 'cannot build here');
+      const costStr = config.cost > 0 ? `Cost: ${config.cost} mat` : 'Free';
+      this.worldUI.showBuildCycler(q, r, {
+        name: config.name,
+        detail,
+        valid,
+        costStr,
+        confirmLabel: 'Build',
+      });
+    } else {
+      const config = UPGRADE_CONFIGS[option.upgrade];
+      this.map.renderer.hideGhost();
+      const detail = valid ? config.description : (blockReason ?? 'cannot apply here');
+      const costStr = config.cost > 0 ? `Cost: ${config.cost} mat` : 'Free';
+      this.worldUI.showBuildCycler(q, r, {
+        name: config.name,
+        detail,
+        valid,
+        costStr,
+        confirmLabel: 'Apply',
+      });
+    }
   }
 
   private yieldSummary(buildingType: number, tileType: number): string {

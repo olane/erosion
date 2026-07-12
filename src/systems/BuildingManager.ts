@@ -2,6 +2,7 @@ import { hexKey } from '../map/HexUtils.ts';
 import { TileType, TILE_CONFIGS } from '../data/tiles.ts';
 import { BuildingType, BUILDING_CONFIGS } from '../data/buildings.ts';
 import type { BuildingInstance } from '../data/buildings.ts';
+import type { UpgradeType } from '../data/upgrades.ts';
 import type { TileData } from '../map/types.ts';
 
 export class BuildingManager {
@@ -14,7 +15,7 @@ export class BuildingManager {
 
   canPlace(type: BuildingType, tile: TileData): boolean {
     if (!TILE_CONFIGS[tile.tileType].buildable) return false;
-    if (!BUILDING_CONFIGS[type].isWall && tile.buildingId !== null) return false;
+    if (tile.buildingId !== null) return false;
     return BuildingManager.isTileAllowed(type, tile.tileType);
   }
 
@@ -33,6 +34,7 @@ export class BuildingManager {
       buildingType: type,
       q: tile.q,
       r: tile.r,
+      upgrades: [],
     };
 
     this.buildings.set(id, instance);
@@ -62,5 +64,19 @@ export class BuildingManager {
   getBuildingTypeAt(q: number, r: number): BuildingType | null {
     const building = this.getBuildingAt(q, r);
     return building ? building.buildingType : null;
+  }
+
+  // Applies an upgrade to the building on (q, r). Returns false if there is no
+  // building there or it already has the upgrade.
+  applyUpgrade(q: number, r: number, upgrade: UpgradeType): boolean {
+    const building = this.getBuildingAt(q, r);
+    if (!building || building.upgrades.includes(upgrade)) return false;
+    building.upgrades.push(upgrade);
+    return true;
+  }
+
+  hasUpgradeAt(q: number, r: number, upgrade: UpgradeType): boolean {
+    const building = this.getBuildingAt(q, r);
+    return building ? building.upgrades.includes(upgrade) : false;
   }
 }

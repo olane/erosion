@@ -8,11 +8,14 @@ export interface BuildCyclerState {
   detail: string;
   valid: boolean;
   costStr: string;
+  // Label for the confirm button (e.g. 'Build' or 'Apply').
+  confirmLabel: string;
 }
 
 export class WorldUI {
-  // Selection -> "Build" button.
+  // Selection -> "Build" button (empty tile) / "Upgrade" button (building tile).
   onBuildStart: ((q: number, r: number) => void) | null = null;
+  onUpgradeStart: ((q: number, r: number) => void) | null = null;
   // Cycler controls.
   onCyclePrev: (() => void) | null = null;
   onCycleNext: (() => void) | null = null;
@@ -144,6 +147,21 @@ export class WorldUI {
     });
   }
 
+  // Shown alongside a building's yield icons when it has upgrades available.
+  showUpgradeButton(q: number, r: number): void {
+    this.clearBuildUI();
+
+    const { x, y } = this.axialToWorld(q, r);
+    const w = 100;
+    const h = 32;
+    const px = x + HEX_SIZE + 6;
+    const py = y - h / 2;
+
+    this.button(px, py, w, h, '⬆ Upgrade', '#ffffff', 0x2a2a4e, 0x6688cc, true, () => {
+      if (this.onUpgradeStart) this.onUpgradeStart(q, r);
+    });
+  }
+
   // ---- Build cycler ----
 
   showBuildCycler(q: number, r: number, state: BuildCyclerState): void {
@@ -194,7 +212,7 @@ export class WorldUI {
       rowY,
       confirmW,
       rowH,
-      'Build',
+      state.confirmLabel,
       state.valid ? '#ffffff' : '#777777',
       state.valid ? 0x2a4e2a : 0x222233,
       state.valid ? 0x44aa44 : 0x333344,

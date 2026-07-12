@@ -5,7 +5,7 @@ import {
   EROSION_BASE_PROGRESS,
   EROSION_ADJACENCY_BONUS,
 } from '../constants.ts';
-import { hexDistance, hexKey, getNeighbors } from '../map/HexUtils.ts';
+import { hexDistance, getNeighbors } from '../map/HexUtils.ts';
 import type { TileData } from '../map/types.ts';
 import type { IClock } from './TimeSystem.ts';
 
@@ -15,6 +15,8 @@ export interface IErosionTarget {
   applyErosion(tile: TileData, progress: number): void;
   transitionTile(q: number, r: number, newType: TileType): void;
   getBuildingTypeAt(q: number, r: number): BuildingType | null;
+  // Whether the building on (q, r) has the sea wall upgrade applied.
+  isSeaWalled(q: number, r: number): boolean;
 }
 
 export interface ErosionConfig {
@@ -107,12 +109,9 @@ export class ErosionSystem {
   }
 
   private getProtectionMultiplier(tile: TileData): number {
-    if (tile.seaWalled) return this.seaWallSelfMult;
+    if (this.map.isSeaWalled(tile.q, tile.r)) return this.seaWallSelfMult;
 
-    const neighborWalled = getNeighbors(tile.q, tile.r).some((n) => {
-      const nt = this.map.tiles.get(hexKey(n.q, n.r));
-      return nt?.seaWalled ?? false;
-    });
+    const neighborWalled = getNeighbors(tile.q, tile.r).some((n) => this.map.isSeaWalled(n.q, n.r));
     if (neighborWalled) return this.seaWallAdjMult;
 
     for (const [, other] of this.map.tiles) {
