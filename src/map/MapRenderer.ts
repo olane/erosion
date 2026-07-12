@@ -76,10 +76,7 @@ export class MapRenderer {
 
   // Traces a hexagon outline onto the graphics path. Callers apply
   // fillPath()/strokePath() afterwards.
-  private traceHex(
-    gfx: Phaser.GameObjects.Graphics,
-    vertices: { x: number; y: number }[],
-  ): void {
+  private traceHex(gfx: Phaser.GameObjects.Graphics, vertices: { x: number; y: number }[]): void {
     gfx.beginPath();
     gfx.moveTo(vertices[0].x, vertices[0].y);
     for (let i = 1; i < 6; i++) gfx.lineTo(vertices[i].x, vertices[i].y);
@@ -116,15 +113,7 @@ export class MapRenderer {
     const hexBorder = tile.seaWalled ? 0x4488cc : tile.erosionProgress > 0 ? 0xff4444 : 0x333333;
     const hexBorderAlpha = tile.seaWalled ? 0.9 : tile.erosionProgress > 0 ? 0.8 : 0.4;
     const hexBorderWidth = tile.seaWalled ? 3 : 1;
-    this.drawHex(
-      gfx,
-      tile.q,
-      tile.r,
-      tile.tileType,
-      hexBorder,
-      hexBorderAlpha,
-      hexBorderWidth,
-    );
+    this.drawHex(gfx, tile.q, tile.r, tile.tileType, hexBorder, hexBorderAlpha, hexBorderWidth);
 
     if (tile.erosionProgress > 0) {
       const pct = tile.erosionProgress / 100;

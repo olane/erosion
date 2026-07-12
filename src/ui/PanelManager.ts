@@ -20,8 +20,7 @@ export class PanelManager {
     this.container = document.createElement('div');
     this.container.id = 'panel-container';
     this.container.style.cssText =
-      'position:absolute;top:0;left:0;right:0;bottom:0;' +
-      'z-index:501;pointer-events:none;';
+      'position:absolute;top:0;left:0;right:0;bottom:0;' + 'z-index:501;pointer-events:none;';
     gameContainer.appendChild(this.container);
   }
 
@@ -57,10 +56,7 @@ export class PanelManager {
   }
 
   showTechTree(): void {
-    this.showPanel(
-      '<p style="color:#888;">Tech tree details coming soon.</p>',
-      'Tech Tree',
-    );
+    this.showPanel('<p style="color:#888;">Tech tree details coming soon.</p>', 'Tech Tree');
   }
 
   destroy(): void {

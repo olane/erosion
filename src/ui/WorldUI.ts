@@ -243,10 +243,7 @@ export class WorldUI {
     txt.setOrigin(0.5, 0.5);
 
     if (enabled) {
-      gfx.setInteractive(
-        new Phaser.Geom.Rectangle(x, y, w, h),
-        Phaser.Geom.Rectangle.Contains,
-      );
+      gfx.setInteractive(new Phaser.Geom.Rectangle(x, y, w, h), Phaser.Geom.Rectangle.Contains);
       gfx.on('pointerover', () => {
         draw(hoverFill);
         this.scene.input.setDefaultCursor('pointer');

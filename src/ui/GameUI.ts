@@ -152,8 +152,7 @@ export class GameUI {
       const remaining = ResourceManager.NEGATIVE_POP_GRACE_DAYS - r.negativePopDays;
       const warnClass = remaining <= 3 ? 'pop-danger' : 'pop-warn';
       this.popEl.className = warnClass;
-      this.popEl.textContent +=
-        `  |  WARNING: Negative population! ${remaining} day${remaining !== 1 ? 's' : ''} to fix or game over`;
+      this.popEl.textContent += `  |  WARNING: Negative population! ${remaining} day${remaining !== 1 ? 's' : ''} to fix or game over`;
     } else {
       this.popEl.className = '';
     }
