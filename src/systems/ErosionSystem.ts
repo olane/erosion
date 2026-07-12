@@ -14,7 +14,7 @@ export interface IErosionTarget {
   getWaterNeighbors(q: number, r: number): TileData[];
   applyErosion(tile: TileData, progress: number): void;
   transitionTile(q: number, r: number, newType: TileType): void;
-  getBuildingTypeAt?(q: number, r: number): BuildingType | null;
+  getBuildingTypeAt(q: number, r: number): BuildingType | null;
 }
 
 export interface ErosionConfig {
@@ -115,12 +115,10 @@ export class ErosionSystem {
     });
     if (neighborWalled) return this.seaWallAdjMult;
 
-    if (this.map.getBuildingTypeAt) {
-      for (const [, other] of this.map.tiles) {
-        if (this.map.getBuildingTypeAt(other.q, other.r) === BuildingType.LIGHTHOUSE) {
-          if (hexDistance(tile, other) <= 3) {
-            return 0.5;
-          }
+    for (const [, other] of this.map.tiles) {
+      if (this.map.getBuildingTypeAt(other.q, other.r) === BuildingType.LIGHTHOUSE) {
+        if (hexDistance(tile, other) <= 3) {
+          return 0.5;
         }
       }
     }
