@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { hexKey, getHexVertices } from './HexUtils.ts';
+import { hexKey, getHexVertices, axialToPixel } from './HexUtils.ts';
 import { TileType, TILE_CONFIGS, EROSION_TRANSITION } from '../data/tiles.ts';
 import { BUILDING_CONFIGS } from '../data/buildings.ts';
 import type { BuildingInstance } from '../data/buildings.ts';
@@ -37,9 +37,7 @@ export class MapRenderer {
   }
 
   axialToWorld(q: number, r: number): { x: number; y: number } {
-    const x = HEX_SIZE * (Math.sqrt(3) * q + (Math.sqrt(3) / 2) * r);
-    const y = HEX_SIZE * ((3 / 2) * r);
-    return { x, y };
+    return axialToPixel(q, r, HEX_SIZE);
   }
 
   render(): void {
