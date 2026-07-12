@@ -96,31 +96,23 @@ export class BuildController {
     // Build mode is locked to a single tile, so only that tile has a meaningful
     // valid/invalid state (used for the hover highlight and ghost tint).
     if (this._buildTile && (this._buildTile.q !== q || this._buildTile.r !== r)) return null;
-    const tile = this.tiles().get(hexKey(q, r));
-    if (!tile) return false;
-    if (!this.buildingManager.canPlace(this._selectedType, tile)) return false;
-    if (!this.hasAdjacentBuilding(q, r)) return false;
-    const buildingConfig = BUILDING_CONFIGS[this._selectedType];
-    if (buildingConfig.isWall && tile.seaWalled) return false;
-    if (buildingConfig.requiresCoastal && !this.isCoastal(q, r)) return false;
-    if (
-      buildingConfig.cost > 0 &&
-      this.resourceProvider &&
-      !this.resourceProvider.canAffordMaterials(buildingConfig.cost)
-    ) {
-      return false;
-    }
-    return true;
+    return this.placementError(q, r, this._selectedType) === null;
   }
 
   buildBlockReason(q: number, r: number): string | null {
     if (this._selectedType === null) return null;
+    return this.placementError(q, r, this._selectedType);
+  }
+
+  // Single source of truth for placement rules. Returns null if `type` can be
+  // placed on (q, r), otherwise a human-readable reason it can't.
+  private placementError(q: number, r: number, type: BuildingType): string | null {
     const tile = this.tiles().get(hexKey(q, r));
     if (!tile) return 'out of bounds';
-    const config = BUILDING_CONFIGS[this._selectedType];
+    const config = BUILDING_CONFIGS[type];
 
     if (!TILE_CONFIGS[tile.tileType].buildable) return 'tile not buildable';
-    if (!BUILDING_CONFIGS[this._selectedType].allowedTiles.includes(tile.tileType)) {
+    if (!config.allowedTiles.includes(tile.tileType)) {
       return `requires ${config.allowedTiles.map((t) => TILE_CONFIGS[t].name).join(' or ')}`;
     }
     if (!config.isWall && tile.buildingId !== null) return 'already occupied';
@@ -137,17 +129,10 @@ export class BuildController {
     return null;
   }
 
-  placeBuildingAt(q: number, r: number, buildingType: BuildingType): boolean {
-    const tile = this.tiles().get(hexKey(q, r));
-    if (!tile) return false;
-
-    if (!this.hasAdjacentBuilding(q, r)) return false;
-
+  private placeBuildingAt(q: number, r: number, buildingType: BuildingType): boolean {
+    if (this.placementError(q, r, buildingType) !== null) return false;
+    const tile = this.tiles().get(hexKey(q, r))!;
     const config = BUILDING_CONFIGS[buildingType];
-    if (!this.buildingManager.canPlace(buildingType, tile)) return false;
-    if (config.isWall && tile.seaWalled) return false;
-    if (config.requiresCoastal && !this.isCoastal(q, r)) return false;
-    if (config.cost > 0 && this.resourceProvider && !this.resourceProvider.canAffordMaterials(config.cost)) return false;
 
     if (config.cost > 0) {
       this.resourceProvider!.spendMaterials(config.cost);
