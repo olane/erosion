@@ -62,7 +62,7 @@ export class GameMap {
   }
 
   transitionTile(q: number, r: number, newType: TileType): void {
-    const tile = this.tiles.get(`${q},${r}`);
+    const tile = this.tiles.get(hexKey(q, r));
     if (!tile) return;
 
     tile.tileType = newType;
