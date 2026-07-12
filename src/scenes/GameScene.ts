@@ -8,7 +8,12 @@ import { ProductionSystem } from '../systems/ProductionSystem.ts';
 import { TechManager } from '../systems/TechManager.ts';
 import { TechNode } from '../data/tech.ts';
 import { BuildController } from '../systems/BuildController.ts';
-import { BuildingType, BUILDING_CONFIGS, getBuildingYields, formatYields } from '../data/buildings.ts';
+import {
+  BuildingType,
+  BUILDING_CONFIGS,
+  getBuildingYields,
+  formatYields,
+} from '../data/buildings.ts';
 import { TILE_CONFIGS } from '../data/tiles.ts';
 import { GameUI } from '../ui/GameUI.ts';
 import { CameraController } from '../systems/CameraController.ts';

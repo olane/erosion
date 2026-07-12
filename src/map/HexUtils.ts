@@ -43,4 +43,3 @@ export function getHexVertices(cx: number, cy: number, size: number): { x: numbe
   }
   return vertices;
 }
-

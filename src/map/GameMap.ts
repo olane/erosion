@@ -1,7 +1,12 @@
 import Phaser from 'phaser';
 import { hexKey, getNeighbors } from './HexUtils.ts';
 import { TileType, TILE_CONFIGS } from '../data/tiles.ts';
-import { BuildingType, BUILDING_CONFIGS, getBuildingYields, formatYields } from '../data/buildings.ts';
+import {
+  BuildingType,
+  BUILDING_CONFIGS,
+  getBuildingYields,
+  formatYields,
+} from '../data/buildings.ts';
 import { MAP_RADIUS, HEX_SIZE } from '../constants.ts';
 import { MapRenderer } from './MapRenderer.ts';
 import { MapGenerator } from './MapGenerator.ts';
@@ -187,5 +192,4 @@ export class GameMap {
       `Rate ${tile.erosionRate.toFixed(2)}x`
     );
   }
-
 }
