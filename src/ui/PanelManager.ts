@@ -63,17 +63,6 @@ export class PanelManager {
     );
   }
 
-  showMenu(): void {
-    this.showPanel(
-      '<p style="color:#888;">Menu options coming soon.</p>',
-      'Menu',
-    );
-  }
-
-  isAnyOpen(): boolean {
-    return this.activePanel !== null;
-  }
-
   destroy(): void {
     this.closeActive();
     this.container.remove();
