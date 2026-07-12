@@ -119,10 +119,6 @@ export class GameMap {
     if (this.onBuildingRemoved) this.onBuildingRemoved();
   }
 
-  isBuildingCompatibleWithTile(q: number, r: number, newTileType: TileType): boolean {
-    return this.buildingManager.isCompatibleWithTile(q, r, newTileType);
-  }
-
   getBuildingTypeAt(q: number, r: number): BuildingType | null {
     return this.buildingManager.getBuildingTypeAt(q, r);
   }
@@ -131,10 +127,6 @@ export class GameMap {
     const coords = this.renderer.getSelectedCoords();
     if (!coords) return null;
     return this.buildTileInfo(coords.q, coords.r);
-  }
-
-  centerPosition(): { x: number; y: number } {
-    return this.axialToWorld(0, 0);
   }
 
   worldPixelBounds(): { x: number; y: number; width: number; height: number } {
