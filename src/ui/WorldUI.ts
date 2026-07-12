@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import { HEX_SIZE } from '../constants.ts';
+import type { BuildingYields } from '../data/buildings.ts';
 import type { TileIcon } from './types.ts';
 
 export interface BuildCyclerState {
@@ -55,6 +56,28 @@ export class WorldUI {
     this.iconGfx.clear();
     this.iconTexts.forEach((t) => t.destroy());
     this.iconTexts = [];
+  }
+
+  // Renders a building's non-zero yields as coloured badges above its tile,
+  // green/warm for gains and red for costs.
+  showYieldIcons(q: number, r: number, yields: BuildingYields): void {
+    const icons: TileIcon[] = [];
+    const add = (value: number, posColor: number, negColor: number) => {
+      if (value === 0) return;
+      icons.push({
+        q,
+        r,
+        text: value > 0 ? `+${value}` : `${value}`,
+        color: 0xffffff,
+        bgColor: value > 0 ? posColor : negColor,
+        size: 'medium',
+      });
+    };
+    add(yields.food, 0x44cc44, 0xcc4444);
+    add(yields.materials, 0xcc9944, 0xcc6644);
+    add(yields.science, 0x4488cc, 0x4444cc);
+    add(yields.population, 0xccaa44, 0xcc4444);
+    if (icons.length > 0) this.showTileIcons(icons);
   }
 
   showTileIcons(icons: TileIcon[]): void {

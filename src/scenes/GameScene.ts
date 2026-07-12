@@ -14,7 +14,6 @@ import { GameUI } from '../ui/GameUI.ts';
 import { CameraController } from '../systems/CameraController.ts';
 import { WorldUI } from '../ui/WorldUI.ts';
 import { PanelManager } from '../ui/PanelManager.ts';
-import type { TileIcon } from '../ui/types.ts';
 
 export class GameScene extends Phaser.Scene {
   map!: GameMap;
@@ -207,8 +206,7 @@ export class GameScene extends Phaser.Scene {
     const building = this.map.buildingManager.getBuildingAt(q, r);
 
     if (building) {
-      const icons = this.buildYieldIcons(q, r, building.buildingType, tile.tileType);
-      if (icons.length > 0) this.worldUI.showTileIcons(icons);
+      this.worldUI.showYieldIcons(q, r, getBuildingYields(building.buildingType, tile.tileType));
     } else if (TILE_CONFIGS[tile.tileType].buildable && this.map.hasAdjacentBuilding(q, r)) {
       this.worldUI.showBuildButton(q, r);
     }
@@ -247,35 +245,6 @@ export class GameScene extends Phaser.Scene {
   private yieldSummary(buildingType: number, tileType: number): string {
     const parts = formatYields(getBuildingYields(buildingType, tileType));
     return parts.length > 0 ? parts.join(', ') : 'no yield';
-  }
-
-  private buildYieldIcons(
-    q: number,
-    r: number,
-    buildingType: number,
-    tileType: number,
-  ): TileIcon[] {
-    const yields = getBuildingYields(buildingType, tileType);
-    const icons: TileIcon[] = [];
-
-    const add = (value: number, posColor: number, negColor: number) => {
-      if (value === 0) return;
-      icons.push({
-        q,
-        r,
-        text: value > 0 ? `+${value}` : `${value}`,
-        color: 0xffffff,
-        bgColor: value > 0 ? posColor : negColor,
-        size: 'medium',
-      });
-    };
-
-    add(yields.food, 0x44cc44, 0xcc4444);
-    add(yields.materials, 0xcc9944, 0xcc6644);
-    add(yields.science, 0x4488cc, 0x4444cc);
-    add(yields.population, 0xccaa44, 0xcc4444);
-
-    return icons;
   }
 
   private triggerGameOver(): void {
