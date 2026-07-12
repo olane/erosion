@@ -45,12 +45,15 @@ export class ResourceManager implements ResourceState {
     return added;
   }
 
-  addScience(amount: number): void {
-    this.science += Math.max(0, amount);
+  addScience(amount: number): number {
+    const added = Math.max(0, amount);
+    this.science += added;
+    return added;
   }
 
-  addPopulation(amount: number): void {
+  addPopulation(amount: number): number {
     this.population += amount;
+    return amount;
   }
 
   spendMaterials(amount: number): boolean {
