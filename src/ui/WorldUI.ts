@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import { HEX_SIZE } from '../constants.ts';
 import type { BuildingYields } from '../data/buildings.ts';
+import { ICONS } from '../data/icons.ts';
 import type { TileIcon } from './types.ts';
 
 export interface BuildCyclerState {
@@ -61,25 +62,27 @@ export class WorldUI {
     this.iconTexts = [];
   }
 
-  // Renders a building's non-zero yields as coloured badges above its tile,
-  // green/warm for gains and red for costs.
+  // Renders a building's non-zero yields as badges above its tile. The emoji
+  // identifies the resource; the pill colour encodes sign (green gain, red cost).
   showYieldIcons(q: number, r: number, yields: BuildingYields): void {
+    const GAIN = 0x2e6b2e;
+    const COST = 0x8a2e2e;
     const icons: TileIcon[] = [];
-    const add = (value: number, posColor: number, negColor: number) => {
+    const add = (icon: string, value: number) => {
       if (value === 0) return;
       icons.push({
         q,
         r,
-        text: value > 0 ? `+${value}` : `${value}`,
+        text: `${icon}${value > 0 ? '+' : ''}${value}`,
         color: 0xffffff,
-        bgColor: value > 0 ? posColor : negColor,
+        bgColor: value > 0 ? GAIN : COST,
         size: 'medium',
       });
     };
-    add(yields.food, 0x44cc44, 0xcc4444);
-    add(yields.materials, 0xcc9944, 0xcc6644);
-    add(yields.science, 0x4488cc, 0x4444cc);
-    add(yields.population, 0xccaa44, 0xcc4444);
+    add(ICONS.food, yields.food);
+    add(ICONS.materials, yields.materials);
+    add(ICONS.science, yields.science);
+    add(ICONS.population, yields.population);
     if (icons.length > 0) this.showTileIcons(icons);
   }
 
@@ -93,7 +96,9 @@ export class WorldUI {
       byTile.get(key)!.push(icon);
     }
 
-    const iconR = 11;
+    const pillH = 20;
+    const padX = 5;
+    const gap = 3;
     const yOff = -(HEX_SIZE * 0.7);
 
     for (const [, group] of byTile) {
@@ -101,27 +106,38 @@ export class WorldUI {
       const r = group[0].r;
       const { x, y } = this.axialToWorld(q, r);
 
-      const totalW = group.length * (iconR * 2 + 2) - 2;
-      let cx = x - totalW / 2 + iconR;
-
-      for (const icon of group) {
-        this.iconGfx.fillStyle(icon.bgColor, 0.85);
-        this.iconGfx.fillCircle(cx, y + yOff, iconR);
-
+      // Create texts first so pills can be sized to their content.
+      const texts = group.map((icon) => {
         const fontSize = icon.size === 'medium' ? '12px' : '10px';
-        const txt = this.scene.add.text(cx, y + yOff, icon.text, {
+        const txt = this.scene.add.text(0, 0, icon.text, {
           fontFamily: 'Courier New',
           fontSize,
           color: `#${icon.color.toString(16).padStart(6, '0')}`,
           align: 'center',
           resolution: window.devicePixelRatio,
         });
+        txt.setShadow(0, 1, '#000000', 2);
         txt.setOrigin(0.5, 0.5);
-        this.iconContainer.add(txt);
-        this.iconTexts.push(txt);
+        return txt;
+      });
 
-        cx += iconR * 2 + 2;
-      }
+      const widths = texts.map((t) => t.width + padX * 2);
+      const totalW = widths.reduce((a, b) => a + b, 0) + gap * (group.length - 1);
+      let cx = x - totalW / 2;
+
+      group.forEach((icon, i) => {
+        const w = widths[i];
+        this.iconGfx.fillStyle(icon.bgColor, 0.92);
+        this.iconGfx.fillRoundedRect(cx, y + yOff - pillH / 2, w, pillH, pillH / 2);
+        this.iconGfx.lineStyle(1, 0x000000, 0.35);
+        this.iconGfx.strokeRoundedRect(cx, y + yOff - pillH / 2, w, pillH, pillH / 2);
+
+        texts[i].setPosition(cx + w / 2, y + yOff);
+        this.iconContainer.add(texts[i]);
+        this.iconTexts.push(texts[i]);
+
+        cx += w + gap;
+      });
     }
   }
 

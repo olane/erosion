@@ -4,6 +4,7 @@ import { UPGRADE_CONFIGS } from '../data/upgrades.ts';
 import { SECONDS_PER_DAY } from '../constants.ts';
 import type { TechManager } from '../systems/TechManager.ts';
 import { ResourceManager } from '../systems/ResourceManager.ts';
+import { ICONS } from '../data/icons.ts';
 import type { ProductionSystem } from '../systems/ProductionSystem.ts';
 import type { BuildController } from '../systems/BuildController.ts';
 
@@ -144,10 +145,10 @@ export class GameUI {
     const sign = (v: number) => (v > 0 ? `+${v}` : `${v}`);
     const rate = (v: number) => (v !== 0 ? ` (${sign(v)})` : '');
 
-    this.foodEl.textContent = `Food: ${Math.floor(r.food)}/${r.foodCap}${rate(p.foodRate)}`;
-    this.matEl.textContent = `Mat:  ${Math.floor(r.materials)}/${r.matCap}${rate(p.matRate)}`;
-    this.scienceEl.textContent = `Sci:  ${Math.floor(r.science)}${rate(p.scienceRate)}`;
-    this.popEl.textContent = `Pop:  ${Math.floor(r.population)}${rate(p.popRate)}`;
+    this.foodEl.textContent = `${ICONS.food} ${Math.floor(r.food)}/${r.foodCap}${rate(p.foodRate)}`;
+    this.matEl.textContent = `${ICONS.materials} ${Math.floor(r.materials)}/${r.matCap}${rate(p.matRate)}`;
+    this.scienceEl.textContent = `${ICONS.science} ${Math.floor(r.science)}${rate(p.scienceRate)}`;
+    this.popEl.textContent = `${ICONS.population} ${Math.floor(r.population)}${rate(p.popRate)}`;
 
     if (r.population < 0) {
       const remaining = ResourceManager.NEGATIVE_POP_GRACE_DAYS - r.negativePopDays;
@@ -161,12 +162,12 @@ export class GameUI {
     const option = this.buildCtrl.current;
     if (option?.kind === 'build') {
       const config = BUILDING_CONFIGS[option.building];
-      const costStr = config.cost > 0 ? `Cost: ${config.cost} mat` : 'Free';
+      const costStr = config.cost > 0 ? `Cost: ${config.cost} ${ICONS.materials}` : 'Free';
       this.buildBtnEl.textContent = `Bldg: [${config.name}]`;
       this.buildStatusEl.textContent = `${costStr} | ◀ ▶ cycle (B) | Enter to build | Esc to cancel`;
     } else if (option?.kind === 'upgrade') {
       const config = UPGRADE_CONFIGS[option.upgrade];
-      const costStr = config.cost > 0 ? `Cost: ${config.cost} mat` : 'Free';
+      const costStr = config.cost > 0 ? `Cost: ${config.cost} ${ICONS.materials}` : 'Free';
       this.buildBtnEl.textContent = `Upgrade: [${config.name}]`;
       this.buildStatusEl.textContent = `${costStr} | ◀ ▶ cycle (B) | Enter to apply | Esc to cancel`;
     } else {
@@ -182,6 +183,6 @@ export class GameUI {
   private buildTechText(): string {
     const info = this.tech.getNextTechInfo();
     if (!info) return 'All tech researched';
-    return `Tech: [${info.name} ${info.cost} sci] (T to research) | ${info.availableCount} available`;
+    return `Tech: [${info.name} ${info.cost} ${ICONS.science}] (T to research) | ${info.availableCount} available`;
   }
 }

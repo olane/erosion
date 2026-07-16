@@ -17,6 +17,7 @@ import {
 } from '../data/buildings.ts';
 import { UpgradeType, UPGRADE_CONFIGS, upgradeAppliesTo } from '../data/upgrades.ts';
 import { TILE_CONFIGS } from '../data/tiles.ts';
+import { ICONS } from '../data/icons.ts';
 import { GameUI } from '../ui/GameUI.ts';
 import { CameraController } from '../systems/CameraController.ts';
 import { WorldUI } from '../ui/WorldUI.ts';
@@ -320,7 +321,7 @@ export class GameScene extends Phaser.Scene {
       const detail = valid
         ? this.yieldSummary(option.building, tile.tileType)
         : (blockReason ?? 'cannot build here');
-      const costStr = config.cost > 0 ? `Cost: ${config.cost} mat` : 'Free';
+      const costStr = config.cost > 0 ? `Cost: ${config.cost} ${ICONS.materials}` : 'Free';
       this.worldUI.showBuildCycler(q, r, {
         name: config.name,
         detail,
@@ -332,7 +333,7 @@ export class GameScene extends Phaser.Scene {
       const config = UPGRADE_CONFIGS[option.upgrade];
       this.map.renderer.hideGhost();
       const detail = valid ? config.description : (blockReason ?? 'cannot apply here');
-      const costStr = config.cost > 0 ? `Cost: ${config.cost} mat` : 'Free';
+      const costStr = config.cost > 0 ? `Cost: ${config.cost} ${ICONS.materials}` : 'Free';
       this.worldUI.showBuildCycler(q, r, {
         name: config.name,
         detail,

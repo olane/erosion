@@ -1,5 +1,6 @@
 import { TileType } from './tiles.ts';
 import type { UpgradeType } from './upgrades.ts';
+import { ICONS } from './icons.ts';
 
 export enum BuildingType {
   TOWN_HALL,
@@ -217,17 +218,17 @@ export function getBuildingYields(buildingType: BuildingType, tileType: TileType
   return base;
 }
 
-// Formats non-zero yields as signed labels, e.g. ['Food +3', 'Pop -1'].
+// Formats non-zero yields as signed labels, e.g. ['🌾 +3', '👥 -1'].
 // Callers join the parts however they need (', ' for summaries, ' ' inline).
 export function formatYields(yields: BuildingYields): string[] {
   const parts: string[] = [];
   const add = (label: string, value: number) => {
     if (value) parts.push(`${label} ${value > 0 ? '+' : ''}${value}`);
   };
-  add('Food', yields.food);
-  add('Mat', yields.materials);
-  add('Sci', yields.science);
-  add('Pop', yields.population);
+  add(ICONS.food, yields.food);
+  add(ICONS.materials, yields.materials);
+  add(ICONS.science, yields.science);
+  add(ICONS.population, yields.population);
   return parts;
 }
 
