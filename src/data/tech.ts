@@ -2,7 +2,6 @@ import { BuildingType } from './buildings.ts';
 
 export enum TechNode {
   COASTAL_ENGINEERING,
-  CRAFTSMANSHIP,
   LOGISTICS,
   BEACON,
   ADVANCED_AGRICULTURE,
@@ -22,12 +21,6 @@ export const TECH_CONFIGS: Record<TechNode, TechNodeConfig> = {
     cost: 15,
     tier: 1,
     unlocks: [], // upgrades sea wall effectiveness
-  },
-  [TechNode.CRAFTSMANSHIP]: {
-    name: 'Craftsmanship',
-    cost: 15,
-    tier: 1,
-    unlocks: [BuildingType.WORKSHOP],
   },
   [TechNode.LOGISTICS]: {
     name: 'Logistics',

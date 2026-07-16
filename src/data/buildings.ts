@@ -54,7 +54,7 @@ export const BUILDING_CONFIGS: Record<BuildingType, BuildingTypeConfig> = {
     cost: 0,
     storageFood: 100,
     storageMat: 100,
-    yields: { default: { materials: 1, science: 1, population: 2 } },
+    yields: { default: { materials: 1, population: 2 } },
     tier: 0,
   },
   [BuildingType.FARM]: {
@@ -65,10 +65,10 @@ export const BUILDING_CONFIGS: Record<BuildingType, BuildingTypeConfig> = {
     iconText: 'F',
     cost: 10,
     yields: {
-      default: {},
+      default: { population: -1 },
       perTile: {
         [TileType.GRASS]: { food: 3 },
-        [TileType.FOREST]: { food: 1 },
+        [TileType.FOREST]: { food: 2 },
         [TileType.SAND]: { food: 1 },
       },
     },
@@ -127,7 +127,7 @@ export const BUILDING_CONFIGS: Record<BuildingType, BuildingTypeConfig> = {
     allowedTiles: [TileType.GRASS, TileType.FOREST, TileType.ROCK, TileType.RUBBLE, TileType.SAND],
     iconText: 'H',
     cost: 15,
-    yields: { default: { food: -2, population: 1 } },
+    yields: { default: { food: -3, population: 2 } },
     tier: 0,
   },
   [BuildingType.WORKSHOP]: {
@@ -137,8 +137,8 @@ export const BUILDING_CONFIGS: Record<BuildingType, BuildingTypeConfig> = {
     allowedTiles: [TileType.GRASS, TileType.FOREST, TileType.ROCK, TileType.RUBBLE, TileType.SAND],
     iconText: 'S',
     cost: 20,
-    yields: { default: { science: 2, population: -1 } },
-    tier: 1,
+    yields: { default: { science: 2, population: -2 } },
+    tier: 0,
   },
   [BuildingType.WAREHOUSE]: {
     name: 'Warehouse',
@@ -170,10 +170,10 @@ export const BUILDING_CONFIGS: Record<BuildingType, BuildingTypeConfig> = {
     iconText: 'A',
     cost: 25,
     yields: {
-      default: {},
+      default: { population: -1 },
       perTile: {
         [TileType.GRASS]: { food: 5 },
-        [TileType.FOREST]: { food: 2 },
+        [TileType.FOREST]: { food: 3 },
         [TileType.SAND]: { food: 2 },
       },
     },
